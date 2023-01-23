@@ -1,0 +1,8 @@
+numpy
+PyYAML
+seaborn
+pandas
+jinja2
+
+IPython
+jupyter
