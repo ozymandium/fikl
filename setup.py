@@ -1,9 +1,11 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
-setup(name="fikl",
-    version="0.1",
+setup(
+    name="fikl",
+    version="0.0.1",
     description="A Python tool for decision making using weighted scores.",
-    packages=["fikl"],
+    packages=find_packages(),
+    python_requires=">=3.8",
     entry_points = {
         "console_scripts": [
             "fikl = fikl.cli:main",
