@@ -1,0 +1,13 @@
+#!/bin/zsh
+
+set -e 
+set -o pipefail
+
+# assume that script is in top level
+REPO_DIR=${0:a:h}
+
+# python setuff
+black \
+    $REPO_DIR/fikl \
+    --line-length 100 \
+    -t py39
