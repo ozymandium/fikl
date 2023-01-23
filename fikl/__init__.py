@@ -101,21 +101,32 @@ class Decision:
             score_range=score_range,
         )
 
-    def _aggregate_score(self, choice, metric):
+    def _aggregate(self, metric, choice: str = None, fixed_score: float = None):
         factors = self.metrics[metric]
         # weights are in same order as factors
         weights = np.array([self.weights[self.factors.index(factor)] for factor in factors])
         # normalize the weights
         weights = weights / np.linalg.norm(weights)
         # scores in order of factors
-        scores = np.array([self.scores[choice][factor] for factor in factors])
+        if fixed_score is not None:
+            scores = fixed_score * np.ones((len(factors),))
+        else:
+            scores = np.array([self.scores[choice][factor] for factor in factors])
         return weights.dot(scores)
 
     def _get_results(self):
-        return {
-            metric: {choice: self._aggregate_score(choice, metric) for choice in self.choices}
-            for metric in self.metrics.keys()
-        }
+        results = {}
+        for metric in self.metrics.keys():
+            agg_range = MinMax(
+                min=self._aggregate(metric, fixed_score=self.score_range.min),
+                max=self._aggregate(metric, fixed_score=self.score_range.max),
+            )
+            results[metric] = {}
+            for choice in self.choices:
+                agg = self._aggregate(metric, choice)
+                scalar = Decision._scalar_from_score(agg, agg_range)
+                results[metric][choice] = Decision._score_from_scalar(scalar, self.score_range)
+        return results
 
     def _get_scores_array(self):
         arr = np.empty((len(self.choices), len(self.factors)))
@@ -132,11 +143,13 @@ class Decision:
                 arr[row, col] = self.results[metric][choice]
         return arr, metrics
 
-    # def _score_to_scalar(self, score):
-    #     return (score - self.score_range.min) / (self.score_range.max - self.score_range.min)
+    @staticmethod
+    def _scalar_from_score(score, score_range):
+        return (score - score_range.min) / (score_range.max - score_range.min)
 
-    # def _scalar_to_score(self, scalar):
-    #     return scalar * (self.score_range.max - self.score_range.min) + self.score_range.min
+    @staticmethod
+    def _score_from_scalar(scalar, score_range):
+        return scalar * (score_range.max - score_range.min) + score_range.min
 
     def to_html(self, path: str = None):
         """
@@ -159,7 +172,21 @@ class Decision:
 
         cmap = sns.color_palette("blend:darkred,green", as_cmap=True)
 
-        html = table.style.background_gradient(axis=None, cmap=cmap).format(precision=2).to_html()
+        html = (
+            table.style.background_gradient(axis=None, cmap=cmap)
+            .format(precision=2)
+            .set_table_styles(
+                [{"selector": "th", "props": [("font-family", "Courier"), ("font-size", "11px")]}]
+            )
+            .set_properties(
+                **{
+                    "text-align": "center",
+                    "font-family": "Courier",
+                    "font-size": "11px",
+                }
+            )
+            .to_html()
+        )
 
         if path is not None:
             with open(path, "w") as f:
