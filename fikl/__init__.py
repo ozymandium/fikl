@@ -20,7 +20,7 @@ class Decision:
         choices: list[str],
         scores: dict[str, dict[str, float]],
         factors: list[str],
-        weights: np.array,
+        raw_weights: np.array,
         score_range: MinMax,
         metrics: dict[str, list[str]] = None,
     ):
@@ -47,7 +47,7 @@ class Decision:
 
         assert set(choices) == set(scores.keys())
         # assert len(factors) == scores.shape[1]
-        assert len(factors) == len(weights)
+        assert len(factors) == len(raw_weights)
         for _, included_factors in metrics.items():
             for factor in included_factors:
                 assert factor in factors
@@ -62,13 +62,23 @@ class Decision:
         self.choices = choices
         self.scores = scores
         self.factors = factors
-        self.weights = weights
         self.score_range = score_range
+
         # automatically add a metric with all factors
         self.metrics = {self.ALL_KEY: factors}
         if metrics is not None:
             for name, included_factors in metrics.items():
                 self.metrics[name] = included_factors
+
+        # weights are normalized for each metric
+        self.weights = {}
+        for metric in self.metrics:
+            # weights are in same order as factors
+            weights = np.array(
+                [raw_weights[self.factors.index(factor)] for factor in self.metrics[metric]]
+            )
+            self.weights[metric] = weights / np.sum(weights)
+        self.logger.info("Weights:\n{}".format(pprint.pformat(self.weights)))
 
         self.results = self._get_results()
         self.logger.debug("Results:\n{}".format(pprint.pformat(self.results)))
@@ -103,36 +113,29 @@ class Decision:
             choices=choices,
             scores=scores,
             factors=factors,
-            weights=weights,
+            raw_weights=weights,
             metrics=metrics,
             score_range=score_range,
         )
 
     def _aggregate(self, metric, choice: str = None, fixed_score: float = None):
         factors = self.metrics[metric]
-        # weights are in same order as factors
-        weights = np.array([self.weights[self.factors.index(factor)] for factor in factors])
-        # normalize the weights
-        weights = weights / np.linalg.norm(weights)
         # scores in order of factors
         if fixed_score is not None:
+            assert choice is None  # just a check
             scores = fixed_score * np.ones((len(factors),))
         else:
+            assert choice is not None
             scores = np.array([self.scores[choice][factor] for factor in factors])
-        return weights.dot(scores)
+        return self.weights[metric].dot(scores)
 
     def _get_results(self):
         results = {}
         for metric in self.metrics.keys():
-            agg_range = MinMax(
-                min=self._aggregate(metric, fixed_score=self.score_range.min),
-                max=self._aggregate(metric, fixed_score=self.score_range.max),
-            )
             results[metric] = {}
             for choice in self.choices:
                 agg = self._aggregate(metric, choice)
-                scalar = Decision._scalar_from_score(agg, agg_range)
-                results[metric][choice] = Decision._score_from_scalar(scalar, self.score_range)
+                results[metric][choice] = Decision._scalar_from_score(agg, self.score_range)
         return results
 
     def _get_scores_df(self) -> pd.DataFrame:
@@ -155,10 +158,6 @@ class Decision:
     def _scalar_from_score(score, score_range):
         return (score - score_range.min) / (score_range.max - score_range.min)
 
-    @staticmethod
-    def _score_from_scalar(scalar, score_range):
-        return scalar * (score_range.max - score_range.min) + score_range.min
-
     def to_html(self, path: str = None):
         """
         Parameters
@@ -166,32 +165,40 @@ class Decision:
         path : str
             File path where html should be written
         """
-        self.logger.debug("choices:\n{}".format(pprint.pformat(self.choices)))
-        scores_df = self._get_scores_df()
-        results_df = self._get_results_df()
-
-        table = pd.concat((scores_df, results_df), axis=1)
+        table = pd.concat((self._get_scores_df(), self._get_results_df()), axis=1)
         self.logger.debug("table:\n{}".format(table))
-
         table = table.sort_values(self.ALL_KEY)
 
-        cmap = sns.color_palette("blend:darkred,green", as_cmap=True)
-
-        html = (
-            table.style.background_gradient(axis=None, cmap=cmap)
-            .format(precision=2)
-            .set_table_styles(
-                [{"selector": "th", "props": [("font-family", "Courier"), ("font-size", "11px")]}]
-            )
-            .set_properties(
-                **{
-                    "text-align": "center",
-                    "font-family": "Courier",
-                    "font-size": "11px",
-                }
-            )
-            .to_html()
+        styler = table.style
+        # scores need a color gradient that is independent of the results, but also is set based
+        # on the score range, not the resultant range for that factor (column)
+        styler = styler.background_gradient(
+            axis="index",
+            cmap=sns.color_palette("blend:darkred,green", as_cmap=True),
+            subset=self.factors,
+            vmin=self.score_range.min,
+            vmax=self.score_range.max,
         )
+        # background gradient for the results is separate, those are percentages
+        styler = styler.background_gradient(
+            axis="index",
+            cmap=sns.color_palette("blend:darkred,green", as_cmap=True),
+            subset=list(self.metrics.keys()),
+            vmin=0,
+            vmax=1,
+        )
+        styler = styler.format({metric: "{0:.0%}" for metric in self.metrics.keys()})
+        styler = styler.set_table_styles(
+            [{"selector": "th", "props": [("font-family", "Courier"), ("font-size", "11px")]}]
+        )
+        styler = styler.set_properties(
+            **{
+                "text-align": "center",
+                "font-family": "Courier",
+                "font-size": "11px",
+            }
+        )
+        html = styler.to_html()
 
         if path is not None:
             with open(path, "w") as f:

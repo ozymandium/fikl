@@ -4,5 +4,5 @@ seaborn
 pandas
 jinja2
 
+# debugging
 IPython
-jupyter
