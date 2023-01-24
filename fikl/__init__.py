@@ -52,6 +52,13 @@ class Decision:
             for factor in included_factors:
                 assert factor in factors
 
+        # assert that all scores are ints
+        assert type(score_range.min) is int
+        assert type(score_range.max) is int
+        for choice in scores:
+            for factor in scores[choice]:
+                assert type(scores[choice][factor]) is int
+
         self.choices = choices
         self.scores = scores
         self.factors = factors
@@ -128,20 +135,21 @@ class Decision:
                 results[metric][choice] = Decision._score_from_scalar(scalar, self.score_range)
         return results
 
-    def _get_scores_array(self):
-        arr = np.empty((len(self.choices), len(self.factors)))
+    def _get_scores_df(self) -> pd.DataFrame:
+        arr = np.empty((len(self.choices), len(self.factors)), dtype=np.int32)
         for row, choice in enumerate(self.choices):
             for col, factor in enumerate(self.factors):
                 arr[row, col] = self.scores[choice][factor]
-        return arr
+        return pd.DataFrame(arr, columns=self.factors, index=self.choices)
 
-    def _get_results_array(self):
+    def _get_results_df(self) -> pd.DataFrame:
         metrics = list(self.metrics.keys())
-        arr = np.empty((len(self.choices), len(self.metrics)))
+        arr = np.empty((len(self.choices), len(metrics)))
         for row, choice in enumerate(self.choices):
             for col, metric in enumerate(metrics):
                 arr[row, col] = self.results[metric][choice]
-        return arr, metrics
+        df = pd.DataFrame(arr, columns=metrics, index=self.choices)
+        return df
 
     @staticmethod
     def _scalar_from_score(score, score_range):
@@ -159,15 +167,12 @@ class Decision:
             File path where html should be written
         """
         self.logger.debug("choices:\n{}".format(pprint.pformat(self.choices)))
-        scores_arr = self._get_scores_array()
-        results_arr, metrics = self._get_results_array()
-        arr = np.concatenate((scores_arr, results_arr), axis=1)
-        self.logger.debug("array\n:{}".format(arr))
+        scores_df = self._get_scores_df()
+        results_df = self._get_results_df()
 
-        cols = self.factors + metrics
-        self.logger.debug("Colums:\n{}".format(pprint.pformat(cols)))
+        table = pd.concat((scores_df, results_df), axis=1)
+        self.logger.debug("table:\n{}".format(table))
 
-        table = pd.DataFrame(arr, index=self.choices, columns=cols)
         table = table.sort_values(self.ALL_KEY)
 
         cmap = sns.color_palette("blend:darkred,green", as_cmap=True)
