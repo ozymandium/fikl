@@ -57,7 +57,7 @@ class Decision:
         assert type(score_range.max) is int
         for choice in scores:
             for factor in scores[choice]:
-                assert type(scores[choice][factor]) is int
+                assert type(scores[choice][factor]) is np.int64
 
         self.choices = choices
         self.scores = scores
@@ -84,7 +84,7 @@ class Decision:
         self.logger.debug("Results:\n{}".format(pprint.pformat(self.results)))
 
     @staticmethod
-    def from_yaml(path: str):
+    def read(config_path: str, data_path: str):
         """
         TODO: get away from having ctor and parsing in different formats, and make it so that the
         ctor args are exactly the same as the yaml content. intermediate variable creation should be
@@ -92,22 +92,37 @@ class Decision:
 
         Parameters
         ----------
-        path : str
-            File path where yaml should be read
+        config_path : str
+            File path where config yaml should be read
+        data_path : str
+            File path where data csv should be read
 
         Returns
         -------
         Decision
         """
-        with open(path, "r") as f:
-            data = yaml.load(f, Loader=yaml.FullLoader)
+        with open(config_path, "r") as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+        # read the ranking matrix from the csv as a dataframe
+        data = pd.read_csv(data_path)
 
-        choices = list(data["scores"].keys())
-        factors = [k for k, _ in sorted(data["weights"].items(), key=lambda item: item[1])]
-        scores = data["scores"]
-        weights = [data["weights"][factor] for factor in factors]
-        metrics = data["metrics"]
-        score_range = MinMax(**data["score_range"])
+        # ensure that data has a "name" column and all other colums are factors
+        if set(data.columns) != set(config["weights"].keys()).union({"name"}):
+            raise ValueError(
+                "data columns {} do not match config weights {}".format(
+                    set(data.columns), set(config["weights"].keys())
+                )
+            )
+
+        choices = data["name"].tolist()
+        factors = [k for k, _ in sorted(config["weights"].items(), key=lambda item: item[1])]
+        scores = {
+            choice: {factor: data[factor][data["name"] == choice].iloc[0] for factor in factors}
+            for choice in choices
+        }
+        weights = [config["weights"][factor] for factor in factors]
+        metrics = config["metrics"]
+        score_range = MinMax(**config["score_range"])
 
         return Decision(
             choices=choices,
