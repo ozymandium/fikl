@@ -21,11 +21,16 @@ def scorer_int(val: Any, config: dict) -> int:
 
 
 def scorer_bin(val: Any, config: dict) -> int:
-    """scoring function that bins the value based on the config"""
-    for ret, (min, max) in config.items():
-        if min <= val < max:
-            return int(ret)
-    raise ValueError("value {} is not in any bin.\nconfig: {}".format(val, pprint.pformat(config)))
+    """
+    scoring function that bins the value based on the config. when this is used, the config should
+    be a list of dicts, each with a "min", "max", and "val" key. the value is compared to the min
+    and max, and if it is in that range, the val is returned. if the value is not in any of the
+    ranges, a ValueError is raised.
+    """
+    for bin in config:
+        if bin["min"] <= val < bin["max"]:
+            return bin["val"]
+    raise ValueError("value {} is not in any of the bins".format(val))
 
 
 SCORERS = {
@@ -111,7 +116,19 @@ class Decision:
 
         # read the ranking matrix from the csv as a dataframe
         # the index is the choice name, the columns are the factors
-        self.scores = pd.read_csv(data_path, index_col="choice")
+        raw_scores = pd.read_csv(data_path, index_col="choice")
+        self.logger.debug("raw scores:\n{}".format(raw_scores))
+        # determine which scorer to use for each factor
+        # a scorer takes in the value from raw_scores and the config for that factor, and returns
+        # an int score that is inside of the score range described by MinMax
+        scorer_config = {factor: c["config"] for factor, c in config["factors"].items()}
+        scorer = {factor: SCORERS[c["type"]] for factor, c in config["factors"].items()}
+        self.logger.debug("scorer: {}".format(scorer))
+        # for each column in raw_scores, apply the scorer that corresponds to that factor, and
+        # pass in the scorer config for that factor to the scorer.
+        self.scores = raw_scores.apply(
+            lambda col: col.apply(lambda val: scorer[col.name](val, scorer_config[col.name]))
+        )
         self.logger.info("Scores:\n{}".format(pprint.pformat(self.scores)))
 
         # # ensure that scores has a "choice" column and all other colums are factors
