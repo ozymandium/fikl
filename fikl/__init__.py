@@ -6,12 +6,32 @@ import seaborn as sns
 from collections import namedtuple
 import logging
 import pprint
+from typing import Optional, Any
 
 
 def ensure_type(obj, t):
     """Ensure that an object is of a certain type"""
     if type(obj) is not t:
         raise TypeError("object {} is not of type {}".format(obj, t))
+
+
+def scorer_int(val: Any, config: dict) -> int:
+    """scoring function that simply returns the value as an int"""
+    return int(val)
+
+
+def scorer_bin(val: Any, config: dict) -> int:
+    """scoring function that bins the value based on the config"""
+    for ret, (min, max) in config.items():
+        if min <= val < max:
+            return int(ret)
+    raise ValueError("value {} is not in any bin.\nconfig: {}".format(val, pprint.pformat(config)))
+
+
+SCORERS = {
+    "int": scorer_int,
+    "bin": scorer_bin,
+}
 
 
 class MinMax(namedtuple("MinMax", ["min", "max"])):
@@ -66,8 +86,6 @@ class Decision:
         the factors. the "All" metric is automatically added which includes all factors
     """
 
-    ALL_KEY = "All"
-
     def __init__(self, config_path: str, data_path: str):
         """
         TODO: get away from having ctor and parsing in different formats, and make it so that the
@@ -96,33 +114,30 @@ class Decision:
         self.scores = pd.read_csv(data_path, index_col="choice")
         self.logger.info("Scores:\n{}".format(pprint.pformat(self.scores)))
 
-        # ensure that scores has a "choice" column and all other colums are factors
-        if set(self.scores.columns) != set(config["factors"].keys()):
-            raise ValueError(
-                "score columns {} do not match config factors {}".format(
-                    set(self.scores.columns), set(config["factors"].keys())
-                )
-            )
+        # # ensure that scores has a "choice" column and all other colums are factors
+        # if set(self.scores.columns) != set(config["factors"].keys()):
+        #     raise ValueError(
+        #         "score columns {} do not match config factors {}".format(
+        #             set(self.scores.columns), set(config["factors"].keys())
+        #         )
+        #     )
 
         # weight should be a DataFrame where the columns are factors and the index is the metric.
         # columns should be the same as the factors in the scores. Initialize with all zeros.
         self.weights = pd.DataFrame(
             0,
             columns=self.scores.columns,
-            index=[Decision.ALL_KEY] + list(config["metrics"].keys()),
+            index=list(config["metrics"].keys()),
         )
-        # the "All" metric should have all factors populated with values from the config
-        for factor in config["factors"]:
-            self.weights.loc[Decision.ALL_KEY, factor] = config["factors"][factor]["weight"]
-        # for each metric, copy all the weights for included factors from the "All" weights
+        # for each metric, set the weights for each factor
         for metric in config["metrics"]:
             for factor in config["metrics"][metric]:
-                self.weights.loc[metric, factor] = self.weights.loc[Decision.ALL_KEY, factor]
+                self.weights.loc[metric, factor] = config["metrics"][metric][factor]
         # normalize the weights for each metric (along each row)
         self.weights = self.weights.div(self.weights.sum(axis=1), axis=0)
         self.logger.info("Weights:\n{}".format(pprint.pformat(self.weights)))
 
-        score_range = MinMax(**config["score"]["range"])
+        score_range = MinMax(**config["score"])
         self.score_range = score_range
         self.logger.debug("Score range: {}".format(self.score_range))
 
@@ -181,36 +196,34 @@ class Decision:
         """
         return np.dot(self.weights.loc[metric], self.scores.loc[choice])
 
-    def _get_results(self):
-        results = {}
-        for metric in self.metrics():
-            results[metric] = {}
-            for choice in self.choices():
-                agg = self._aggregate(metric, choice)
-                results[metric][choice] = self.score_range.normalize(agg)
+    def _get_results(self) -> pd.DataFrame:
+        results = pd.DataFrame(
+            index=self.choices(),
+            columns=self.metrics(),
+            dtype=float,
+        )
+        for choice in self.choices():
+            for metric in self.metrics():
+                results.loc[choice, metric] = self.score_range.normalize(
+                    self._aggregate(metric, choice)
+                )
         return results
 
-    def _get_results_df(self) -> pd.DataFrame:
-        results = self._get_results()
-        self.logger.debug("Results:\n{}".format(pprint.pformat(results)))
-        metrics = list(self.metrics())
-        arr = np.empty((len(self.choices()), len(metrics)))
-        for row, choice in enumerate(self.choices()):
-            for col, metric in enumerate(metrics):
-                arr[row, col] = results[metric][choice]
-        df = pd.DataFrame(arr, columns=metrics, index=self.choices())
-        return df
-
-    def to_html(self, path: str = None):
+    def to_html(self, path: str = None) -> Optional[str]:
         """
         Parameters
         ----------
-        path : str
-            File path where html should be written
+        path : str or None
+            File path where html should be written. If None, return the html as a string.
+
+        Returns
+        -------
+        str or None
+            If path is None, return the html as a string. Otherwise, None.
         """
-        table = pd.concat((self.scores, self._get_results_df()), axis=1)
+        table = pd.concat((self.scores, self._get_results()), axis=1)
         self.logger.debug("table:\n{}".format(table))
-        table = table.sort_values(self.ALL_KEY)
+        table = table.sort_values(self.metrics()[0], ascending=False)
 
         styler = table.style
         # scores need a color gradient that is independent of the results, but also is set based
