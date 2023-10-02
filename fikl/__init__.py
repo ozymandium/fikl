@@ -68,8 +68,7 @@ class Decision:
 
     ALL_KEY = "All"
 
-    @staticmethod
-    def read(config_path: str, data_path: str):
+    def __init__(self, config_path: str, data_path: str):
         """
         TODO: get away from having ctor and parsing in different formats, and make it so that the
         ctor args are exactly the same as the yaml content. intermediate variable creation should be
@@ -86,74 +85,46 @@ class Decision:
         -------
         Decision
         """
+        self.logger = logging.getLogger()
+
         # read the config yaml
         with open(config_path, "r") as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
 
         # read the ranking matrix from the csv as a dataframe
         # the index is the choice name, the columns are the factors
-        scores = pd.read_csv(data_path, index_col="choice")
+        self.scores = pd.read_csv(data_path, index_col="choice")
+        self.logger.info("Scores:\n{}".format(pprint.pformat(self.scores)))
 
         # ensure that scores has a "choice" column and all other colums are factors
-        if set(scores.columns) != set(config["factors"].keys()):
+        if set(self.scores.columns) != set(config["factors"].keys()):
             raise ValueError(
                 "score columns {} do not match config factors {}".format(
-                    set(scores.columns), set(config["factors"].keys())
+                    set(self.scores.columns), set(config["factors"].keys())
                 )
             )
 
         # weight should be a DataFrame where the columns are factors and the index is the metric.
         # columns should be the same as the factors in the scores. Initialize with all zeros.
-        weights = pd.DataFrame(
-            0, columns=scores.columns, index=[Decision.ALL_KEY] + list(config["metrics"].keys())
+        self.weights = pd.DataFrame(
+            0,
+            columns=self.scores.columns,
+            index=[Decision.ALL_KEY] + list(config["metrics"].keys()),
         )
         # the "All" metric should have all factors populated with values from the config
         for factor in config["factors"]:
-            weights.loc[Decision.ALL_KEY, factor] = config["factors"][factor]["weight"]
+            self.weights.loc[Decision.ALL_KEY, factor] = config["factors"][factor]["weight"]
         # for each metric, copy all the weights for included factors from the "All" weights
         for metric in config["metrics"]:
             for factor in config["metrics"][metric]:
-                weights.loc[metric, factor] = weights.loc[Decision.ALL_KEY, factor]
+                self.weights.loc[metric, factor] = self.weights.loc[Decision.ALL_KEY, factor]
         # normalize the weights for each metric (along each row)
-        weights = weights.div(weights.sum(axis=1), axis=0)
+        self.weights = self.weights.div(self.weights.sum(axis=1), axis=0)
+        self.logger.info("Weights:\n{}".format(pprint.pformat(self.weights)))
 
         score_range = MinMax(**config["score"]["range"])
-
-        return Decision(
-            scores=scores,
-            raw_weights=weights,
-            score_range=score_range,
-        )
-
-    def __init__(
-        self,
-        scores: pd.DataFrame,
-        raw_weights: np.array,
-        score_range: MinMax,
-    ):
-        """
-        Parameters
-        ----------
-        scores : pd.DataFrame
-            the ranking matrix. the index is the choice name, the columns are the factors
-        raw_weights : np.array
-            1d array with a weighting for each value, in the same order as the factors in the
-            scores. these weights are not normalized, that is done in the ctor.
-        score_range : MinMax
-            the minimum and maximum possible scores. if none provided, it will be inferred from
-            `scores`.
-        """
-        self.logger = logging.getLogger()
-
-        self.scores = scores.copy()
-        self.logger.info("Scores:\n{}".format(pprint.pformat(self.scores)))
-
         self.score_range = score_range
-        self.logger.info("Score range: {}".format(self.score_range))
-
-        # weights are normalized for each metric
-        self.weights = raw_weights.copy()
-        self.logger.info("Weights:\n{}".format(pprint.pformat(self.weights)))
+        self.logger.debug("Score range: {}".format(self.score_range))
 
         # check and make sure that the columns are shared between scores and weights
         if set(self.scores.columns) != set(self.weights.columns):

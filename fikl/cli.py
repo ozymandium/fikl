@@ -33,7 +33,7 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    decision = Decision.read(config_path=args.config, data_path=args.data)
+    decision = Decision(config_path=args.config, data_path=args.data)
     decision.to_html(args.output)
 
 
