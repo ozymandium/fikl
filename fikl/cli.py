@@ -1,4 +1,4 @@
-from fikl import Decision
+from fikl.decision import Decision
 
 import argparse
 import logging
