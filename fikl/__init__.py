@@ -171,9 +171,103 @@ class BucketScorer:
         return ret
 
 
+class RelativeScorer:
+    """Assigns scores by setting the highest value to 1 and the lowest value to 0. All other values
+    are linearly interpolated between those two values."""
+    CODE = "relative"
+    DTYPE = float
+
+    def __call__(self, col: pd.Series) -> pd.Series:
+        """
+        Parameters
+        ----------
+        col : pd.Series
+            the column to score
+
+        Returns
+        -------
+        pd.Series
+            the scored column, with values between 0 and 1
+        """
+        # make sure all values are DTYPE. if not, try to cast them to DTYPE and log a warning.
+        if not col.dtype == self.DTYPE:
+            logging.warning(
+                f"column dtype is {col.dtype} but scorer {self} requires dtype {self.DTYPE}, casting to {self.DTYPE}"
+            )
+            col = col.astype(self.DTYPE)
+        # compute the return
+        ret = (col - col.min()) / (col.max() - col.min())
+        # make sure all values lie between 0 and 1
+        assert (ret >= 0).all()
+        assert (ret <= 1).all()
+        return ret
+
+
+class SplineScorer:
+    """Scorer that assigns scores by fitting a spline to user-supplied knots. For 2 knots, a linear
+    interpolation is used. For 3 or more knots, a cubic spline is used."""
+    CODE = "spline"
+    DTYPE = float
+
+    def __init__(self, knots: List[dict[str, float]]):
+        """
+        Parameters
+        ----------
+        knots : dict
+            each knot is a dict with keys "in" and "out". "in" is the x value, and "out" is the y
+            value. "out" must be between 0 and 1. "in" corresponds to user input, and "out" is the
+            score that will be assigned to that input.
+        """
+        # ensure that the knots are contiguous
+        for i, knot in enumerate(knots[:-1]):
+            if knot["in"] >= knots[i + 1]["in"]:
+                raise ValueError(
+                    "knots must be contiguous, but got knots {} and {}".format(
+                        knot, knots[i + 1]
+                    )
+                )
+        # create a numpy spline object from the knots. first determine if a linear or cubic spline
+        # should be used.
+        if len(knots) == 2:
+            # linear spline
+            self.spline = np.poly1d(np.polyfit([k["in"] for k in knots], [k["out"] for k in knots], 1))
+        elif len(knots) >= 3:
+            # cubic spline
+            self.spline = np.poly1d(np.polyfit([k["in"] for k in knots], [k["out"] for k in knots], 3))
+        else:
+            raise ValueError(f"must have at least 2 knots, but got {len(knots)}")
+        
+    def __call__(self, col: pd.Series) -> pd.Series:
+        """
+        Parameters
+        ----------
+        col : pd.Series
+            the column to score
+
+        Returns
+        -------
+        pd.Series
+            the scored column, with values between 0 and 1
+        """
+        # make sure all values are DTYPE. if not, try to cast them to DTYPE and log a warning.
+        if not col.dtype == self.DTYPE:
+            logging.warning(
+                f"column dtype is {col.dtype} but scorer {self} requires dtype {self.DTYPE}, casting to {self.DTYPE}"
+            )
+            col = col.astype(self.DTYPE)
+        # compute the return
+        ret = self.spline(col)
+        # make sure all values lie between 0 and 1
+        assert (ret >= 0).all()
+        assert (ret <= 1).all()
+        return ret
+
+
 SCORERS = {
     StarScorer,
     BucketScorer,
+    RelativeScorer,
+    SplineScorer,
 }
 SCORERS_LOOKUP = {scorer.CODE: scorer for scorer in SCORERS}
 
