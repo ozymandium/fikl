@@ -177,6 +177,9 @@ class RelativeScorer:
     CODE = "relative"
     DTYPE = float
 
+    def __init__(self, invert: bool):
+        self.invert = invert
+
     def __call__(self, col: pd.Series) -> pd.Series:
         """
         Parameters
@@ -197,6 +200,8 @@ class RelativeScorer:
             col = col.astype(self.DTYPE)
         # compute the return
         ret = (col - col.min()) / (col.max() - col.min())
+        if self.invert:
+            ret = 1.0 - ret
         # make sure all values lie between 0 and 1
         assert (ret >= 0).all()
         assert (ret <= 1).all()
@@ -263,12 +268,12 @@ class SplineScorer:
         return ret
 
 
-SCORERS = {
+SCORERS = [
     StarScorer,
     BucketScorer,
     RelativeScorer,
     SplineScorer,
-}
+]
 SCORERS_LOOKUP = {scorer.CODE: scorer for scorer in SCORERS}
 
 
@@ -319,12 +324,10 @@ class Decision:
         # determine which scorer to use for each factor
         # a scorer takes in the value from raw_scores and the config for that factor, and returns
         # an int score that is inside of the score range described by MinMax
-        scorers: Dict[str, Callable] = {}
-        for factor, cfg in config["factors"].items():
-            scorer_t = SCORERS_LOOKUP[cfg["type"]]
-            scorer_config = cfg["config"]
-            scorers[factor] = scorer_t(**scorer_config)
-        self.logger.debug(f"scorers: {scorers}")
+        scorers = {
+            factor: SCORERS_LOOKUP[cfg["type"]](**cfg["config"])
+            for factor, cfg in config["factors"].items()
+        }
 
         # each scorer requires a certain dtype for the input. iterate over each factor/column and
         # make sure that the dtype is correct. if not, try to cast it to the correct type and log a
@@ -364,15 +367,6 @@ class Decision:
                 )
             )
 
-    def factors(self) -> list[str]:
-        """
-        Returns
-        -------
-        list[str]
-            list of factor names
-        """
-        return list(self.scores.columns)
-
     def choices(self) -> list[str]:
         """
         Returns
@@ -404,41 +398,40 @@ class Decision:
                 )
         return results
 
-    def to_html(self, path: str = None) -> Optional[str]:
+    def _table_to_html(self, table: pd.DataFrame, is_score: bool) -> Optional[str]:
         """
         Parameters
         ----------
-        path : str or None
-            File path where html should be written. If None, return the html as a string.
+        table : pd.DataFrame
+            DataFrame to convert to html
 
         Returns
         -------
-        str or None
-            If path is None, return the html as a string. Otherwise, None.
+        str
+            html as a string.
         """
-        table = pd.concat((self.scores, self._get_results()), axis=1)
-        self.logger.debug("table:\n{}".format(table))
-        table = table.sort_values(self.metrics()[0], ascending=False)
-
         styler = table.style
-        # scores need a color gradient that is independent of the results, but also is set based
-        # on the score range, not the resultant range for that factor (column)
-        styler = styler.background_gradient(
-            axis="index",
-            cmap=sns.color_palette("blend:darkred,green", as_cmap=True),
-            vmin=0.0,
-            vmax=1.0,
-        )
-        # # background gradient for the results is separate, those are percentages
-        # styler = styler.background_gradient(
-        #     axis="index",
-        #     cmap=sns.color_palette("blend:darkred,green", as_cmap=True),
-        #     subset=list(self.metrics()),
-        #     vmin=0,
-        #     vmax=1,
-        # )
-        # styler = styler.format({metric: "{0:.0%}" for metric in self.metrics()})
-        styler = styler.format("{0:.0%}")
+
+        if is_score:
+            # apply a background gradient to the whole table based on the score range
+            # it is possible to apply a background gradient to a subset of the columns, using `subset`
+            styler = styler.background_gradient(
+                axis="index",
+                cmap=sns.color_palette("blend:darkred,green", as_cmap=True),
+                vmin=0.0,
+                vmax=1.0,
+            )
+            
+            # scores are all floats between 0 and 1, so format them as percentages
+            # it is possible to apply a format to a subset of the columns, by passing a dict to format
+            styler = styler.format("{0:.0%}")
+
+        else:
+            
+            # raw data may be floats or ints. either way, we just want to remove trailing zeros so
+            # that only significant digits are shown
+            styler = styler.format("{0:g}")
+
         styler = styler.set_table_styles(
             [{"selector": "th", "props": [("font-family", "Courier"), ("font-size", "11px")]}]
         )
@@ -449,10 +442,39 @@ class Decision:
                 "font-size": "11px",
             }
         )
-        html = styler.to_html()
+        return styler.to_html()
+
+    def to_html(self, path: str = None) -> Optional[str]:
+        """
+        """
+        raw_html = self._table_to_html(self.raw, is_score=False)
+        score_html = self._table_to_html(self.scores, is_score=True)
+        results_html = self._table_to_html(self._get_results(), is_score=True)
+
+        # dump the html blobs into a template
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+            <body>
+                <h1>Raw Data</h1>
+                <div>
+                    {raw_html}
+                </div>
+                <h1>Scores</h1>
+                <div>
+                    {score_html}
+                </div>
+                <h1>Results</h1>
+                <div>
+                    {results_html}
+                </div>
+            </body>
+        </html>
+        """
 
         if path is not None:
             with open(path, "w") as f:
                 f.write(html)
         else:
             return html
+
