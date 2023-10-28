@@ -3,6 +3,7 @@ PyYAML
 seaborn
 pandas
 jinja2
+coverage
 
 # debugging
 IPython

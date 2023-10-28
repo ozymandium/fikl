@@ -1,3 +1,21 @@
+"""
+Scorers are used to assign scores to columns of data. The user specifies the scorer and its
+parameters in the config file. The scorer is then used to assign scores to the column of data
+specified by the user.
+
+Each scorer class has a CODE attribute that the user specifies in the config file. The scorer
+class is then looked up in the LOOKUP dict using the CODE as the key. The scorer class is then
+instantiated with the parameters specified in the config file. 
+
+The config file should have a section that looks like this:
+
+```yaml
+<data column name>:
+    type: <scorer code>
+    config:
+        <scorer config dict, which is passed to the scorer class as kwargs>
+```
+"""
 from fikl.util import ensure_type
 
 import logging
@@ -8,7 +26,7 @@ import pandas as pd
 import numpy as np
 
 
-class StarScorer:
+class Star:
     """
     scorer that accepts input as ints on a fixed scale, such as the 5 start scale, where
     1 is the lowest and 5 is the highest.
@@ -20,6 +38,16 @@ class StarScorer:
     DTYPE = int
 
     def __init__(self, min: int, max: int):
+        """
+        Parameters
+        ----------
+        min : int
+            the minimum value in the input scale. For example, this would be 1 for the 5 star scale.
+            An input with this value will get a 0.0 return value from the scorer.
+        max : int
+            the maximum value in the input scale. For example, this would be 5 for the 5 star scale.
+            An input with this value will get a 1.0 return value from the scorer.
+        """
         ensure_type(min, int)
         ensure_type(max, int)
         if min >= max:
@@ -40,6 +68,7 @@ class StarScorer:
         pd.Series
             the scored column, with values between 0 and 1
         """
+        ensure_type(col, pd.Series)
         # make sure all values are between the min and max
         if not (col >= self.min).all():
             raise ValueError(f"all values in column must be >= {self.min}, but got\n{col}")
@@ -47,18 +76,15 @@ class StarScorer:
             raise ValueError(f"all values in column must be <= {self.max}, but got\n{col}")
         # make sure all values are ints
         if not col.dtype == int:
-            raise ValueError(f"all values in column must be ints but col dtype is {col.dtype}")
+            raise TypeError(f"all values in column must be ints but col dtype is {col.dtype}")
         # compute the return
         ret = (col - self.min) / self.range
-        # make sure all values lie between 0 and 1
-        if not (ret >= 0).all():
-            raise ValueError(f"all values in column must be >= 0, but got\n{ret}")
-        if not (ret <= 1).all():
-            raise ValueError(f"all values in column must be <= 1, but got\n{ret}")
+        # make sure all values lie between 0 and 1. use assertion since this should never happen.
+        assert (ret >= 0).all() and (ret <= 1).all()        
         return ret
 
 
-class BucketScorer:
+class Bucket:
     """User sets bins for lumping input values into groups that all get that same score."""
 
     # how user requests that scoring be done using this scorer
@@ -164,7 +190,7 @@ class BucketScorer:
         return ret
 
 
-class RelativeScorer:
+class Relative:
     """Assigns scores by setting the highest value to 1 and the lowest value to 0. All other values
     are linearly interpolated between those two values."""
 
@@ -202,7 +228,7 @@ class RelativeScorer:
         return ret
 
 
-class InterpolateScorer:
+class Interpolate:
     """Scorer that assigns scores by fitting a spline to user-supplied knots. Linear spline for all
 
     To view what cubic spines will look like:
@@ -268,9 +294,9 @@ class InterpolateScorer:
 LOOKUP = {
     scorer.CODE: scorer
     for scorer in [
-        StarScorer,
-        BucketScorer,
-        RelativeScorer,
-        InterpolateScorer,
+        Star,
+        Bucket,
+        Relative,
+        Interpolate,
     ]
 }

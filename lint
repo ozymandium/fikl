@@ -9,5 +9,6 @@ REPO_DIR=${0:a:h}
 # python setuff
 black \
     $REPO_DIR/fikl \
+    $REPO_DIR/test \
     --line-length 100 \
     -t py39

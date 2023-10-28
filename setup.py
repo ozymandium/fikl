@@ -12,4 +12,6 @@ setup(
             "fikl = fikl.cli:main",
         ],
     },
+    # unit tests are in the test directory
+    test_suite="tests",
 )
