@@ -4,6 +4,7 @@ seaborn
 pandas
 jinja2
 coverage
+mypy
 
 # debugging
 IPython
