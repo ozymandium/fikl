@@ -1,0 +1,14 @@
+[project]
+name = "fikl"
+version = "0.0.1"
+authors = [
+    {name="Robert Cofield", email="dev@cofield.io"}
+]
+requires-python = ">=3.9.0"
+description = "A tool for choosing between complex options"
+readme = "README.md"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
