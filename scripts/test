@@ -4,7 +4,8 @@ set -e
 set -o pipefail
 
 # assume that script is in top level
-REPO_DIR=${0:a:h}
+REPO_DIR=$(realpath ${0:a:h}/..)
 
-python -m coverage run -m unittest discover -t "$REPO_DIR" -p "test_*.py"
+python -m coverage run --source=$REPO_DIR/src -m pytest 
+# python -m coverage run -m unittest discover -t $REPO_DIR -s $REPO_DIR/tests -v
 python -m coverage html
