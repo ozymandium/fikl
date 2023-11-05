@@ -1,0 +1,4 @@
+#!/bin/zsh
+
+python -m build
+python -m pip install dist/fikl-0.0.1-py3-none-any.whl --force-reinstall

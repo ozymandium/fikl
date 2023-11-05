@@ -7,8 +7,23 @@ authors = [
 requires-python = ">=3.9.0"
 description = "A tool for choosing between complex options"
 readme = "README.md"
+dependencies = [
+    "numpy == 1.26.1",
+    "PyYAML == 6.0.1",
+    "seaborn == 0.13.0",
+    "pandas == 2.1.2",
+    # development
+    "coverage == 7.3.2",
+    "mypy == 1.6.1",
+    "IPython == 8.17.2",
+    "ipdb == 0.13.13",
+]
 
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+# [build-system]
+# requires = ["setuptools>=61.0"]
+# build-backend = "setuptools.build_meta"
 
+[tool.black]
+line-length = 100
+target-version = ['py39']
+include = '\.pyi?$'
