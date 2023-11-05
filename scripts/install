@@ -1,4 +1,8 @@
 #!/bin/zsh
 
-python -m build
-python -m pip install dist/fikl-0.0.1-py3-none-any.whl --force-reinstall
+set -e 
+set -o pipefail
+
+REPO_DIR=$(realpath ${0:a:h}/..)
+
+python -m pip install "$REPO_DIR"

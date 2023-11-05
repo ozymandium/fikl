@@ -80,4 +80,3 @@ class TestStar(unittest.TestCase):
             self.scorer(pd.Series([1.0]))
         with self.assertRaises(TypeError):
             self.scorer(pd.Series(["1"]))
-

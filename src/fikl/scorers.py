@@ -80,7 +80,7 @@ class Star:
         # compute the return
         ret = (col - self.min) / self.range
         # make sure all values lie between 0 and 1. use assertion since this should never happen.
-        assert (ret >= 0).all() and (ret <= 1).all()        
+        assert (ret >= 0).all() and (ret <= 1).all()
         return ret
 
 
