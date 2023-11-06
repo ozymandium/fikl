@@ -32,3 +32,6 @@ include = '\.pyi?$'
 pythonpath = [
   "src",
 ]
+
+[project.scripts]
+fikl = "fikl.__main__:main"
