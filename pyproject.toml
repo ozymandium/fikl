@@ -1,0 +1,48 @@
+[project]
+name = "fikl"
+version = "0.0.1"
+authors = [
+    {name="Robert Cofield", email="dev@cofield.io"}
+]
+requires-python = ">=3.9.0"
+description = "A tool for choosing between complex options"
+readme = "README.md"
+dependencies = [
+    "numpy == 1.26.1",
+    "PyYAML == 6.0.1",
+    "seaborn == 0.13.0",
+    "pandas == 2.1.2",
+    "jinja2", # not sure why this is needed
+    # development
+    "coverage == 7.3.2",
+    "mypy == 1.6.1",
+    "IPython == 8.17.2",
+    "ipdb == 0.13.13",
+    "pyright == 1.1.334",
+    # stubs
+    "pandas-stubs == 2.1.1.230928",
+    "types-PyYAML == 6.0.12.12",
+]
+
+[project.scripts]
+fikl = "fikl.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+include = '\.pyi?$'
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src",
+]
+
+[tool.pyright]
+include = [
+  "src",
+]
+pythonVersion = "3.9"

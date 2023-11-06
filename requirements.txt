@@ -1,9 +1,0 @@
-numpy
-PyYAML
-seaborn
-pandas
-jinja2
-
-# debugging
-IPython
-ipdb
