@@ -12,6 +12,7 @@ dependencies = [
     "PyYAML == 6.0.1",
     "seaborn == 0.13.0",
     "pandas == 2.1.2",
+    "jinja2", # not sure why this is needed
     # development
     "coverage == 7.3.2",
     "mypy == 1.6.1",

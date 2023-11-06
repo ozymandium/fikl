@@ -1,4 +1,4 @@
-from fikl.scorers import LOOKUP as SCORERS_LOOKUP
+from fikl.scorers import LOOKUP
 
 from typing import Optional, Any, Dict, List, Callable
 import logging
@@ -58,7 +58,7 @@ class Decision:
         # a scorer takes in the value from raw_scores and the config for that factor, and returns
         # an int score that is inside of the score range described by MinMax
         scorers = {
-            factor: SCORERS_LOOKUP[cfg["type"]](**cfg["config"])
+            factor: LOOKUP[cfg["type"]](**cfg["config"])
             for factor, cfg in config["factors"].items()
         }
 

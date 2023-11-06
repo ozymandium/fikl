@@ -198,5 +198,7 @@ class TestRange(unittest.TestCase):
             Range(worst=0.0, best=100.0)(pd.Series([0.0, 25.0, 50.0, 75.0, 100.0])).tolist(),
             np.array([0.0, 0.25, 0.50, 0.75, 1.0]).tolist(),
         )
-        self.assertEqual(Range(worst=100.0, best=0.0)(pd.Series([0.0, 25.0, 50.0, 75.0, 100.0])).tolist(),
-                            np.array([1.0, 0.75, 0.50, 0.25, 0.0]).tolist())
+        self.assertEqual(
+            Range(worst=100.0, best=0.0)(pd.Series([0.0, 25.0, 50.0, 75.0, 100.0])).tolist(),
+            np.array([1.0, 0.75, 0.50, 0.25, 0.0]).tolist(),
+        )
