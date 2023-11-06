@@ -13,6 +13,8 @@ import seaborn as sns
 
 class Decision:
     """
+    TODO: swap to functional/imperative style instead of OOP.
+
     Members
     -------
     logger : logging.Logger
@@ -138,7 +140,7 @@ class Decision:
                 )
         return results
 
-    def _table_to_html(self, table: pd.DataFrame, is_score: bool) -> Optional[str]:
+    def _table_to_html(self, table: pd.DataFrame, color_score: bool = False, percent: bool = False) -> Optional[str]:
         """
         Parameters
         ----------
@@ -152,9 +154,8 @@ class Decision:
         """
         styler = table.style
 
-        if is_score:
-            # apply a background gradient to the whole table based on the score range
-            # it is possible to apply a background gradient to a subset of the columns, using `subset`
+        # apply a background gradient to the whole table based on the score range. it is possible to apply a background gradient to a subset of the columns, using `subset`
+        if color_score:
             styler = styler.background_gradient(
                 axis="index",
                 cmap=sns.color_palette("blend:darkred,green", as_cmap=True),
@@ -162,12 +163,11 @@ class Decision:
                 vmax=1.0,
             )
 
+        if percent:
             # scores are all floats between 0 and 1, so format them as percentages
             # it is possible to apply a format to a subset of the columns, by passing a dict to format
             styler = styler.format("{0:.0%}")
-
         else:
-
             # raw data may be floats or ints. either way, we just want to remove trailing zeros so
             # that only significant digits are shown
             styler = styler.format("{0:g}")
@@ -214,10 +214,11 @@ class Decision:
 
     def to_html(self, path: str = None) -> Optional[str]:
         """ """
-        raw_html = self._table_to_html(self.raw, is_score=False)
-        score_html = self._table_to_html(self.scores, is_score=True)
-        results_html = self._table_to_html(self._get_results(), is_score=True)
+        raw_html = self._table_to_html(self.raw)
+        score_html = self._table_to_html(self.scores, color_score=True, percent=True)
+        results_html = self._table_to_html(self._get_results(), color_score=True, percent=True)
         factors_html = self._factors_to_html()
+        metrics_html = self._table_to_html(self.weights, percent=True)
 
         # dump the html blobs into a template
         html = f"""
@@ -235,6 +236,10 @@ class Decision:
                 <h1>Results</h1>
                 <div>
                     {results_html}
+                </div>
+                <h1>Metrics</h1>
+                <div>
+                    {metrics_html}
                 </div>
                 <h1>Factors</h1>
                 <div>
