@@ -17,6 +17,10 @@ dependencies = [
     "mypy == 1.6.1",
     "IPython == 8.17.2",
     "ipdb == 0.13.13",
+    "pyright == 1.1.334",
+    # stubs
+    "pandas-stubs == 2.1.1.230928",
+    "types-PyYAML == 6.0.12.12",
 ]
 
 [project.scripts]
@@ -36,5 +40,8 @@ pythonpath = [
   "src",
 ]
 
-[tool.mypy]
-python_version = 3.9
+[tool.pyright]
+include = [
+  "src",
+]
+pythonVersion = "3.9"

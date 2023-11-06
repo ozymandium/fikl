@@ -92,10 +92,10 @@ class Bucket:
     # required type of input
     DTYPE = float
 
-    class Bucket(namedtuple("Bucket", ["min", "max", "val"])):
+    class Bucket:
         """A bucket is a range of values that all get the same score."""
 
-        def __new__(cls, min: float, max: float, val: float):
+        def __init__(self, min: float, max: float, val: float):
             # if inputs are not floats, cast them to floats, but log a warning
             if not isinstance(min, float):
                 logging.warning(f"min {min} is not a float, casting to float")
@@ -111,7 +111,10 @@ class Bucket:
                 raise ValueError(f"min {min} must be < max {max}")
             if val < 0 or val > 1:
                 raise ValueError(f"val {val} must be between 0 and 1")
-            return super().__new__(cls, min, max, val)
+            # store inputs
+            self.min = min
+            self.max = max
+            self.val = val
 
     def __init__(self, buckets: List[Dict[str, float]]):
         """
@@ -160,7 +163,7 @@ class Bucket:
             raise ValueError(
                 f"all values in column must be >= {self.buckets[0].min}, but got\n{col}"
             )
-        if not (col <= self.buckets[-1].max).all():
+        if not (col < self.buckets[-1].max).all():
             raise ValueError(
                 f"all values in column must be <= {self.buckets[-1].max}, but got\n{col}"
             )
@@ -169,24 +172,12 @@ class Bucket:
             raise ValueError(
                 f"all values in column must be same type as bucket min {self.buckets[0].min} but col dtype is {col.dtype}"
             )
-        # make sure all inputs are between the min and max of some bucket
-        if not (col >= self.buckets[0].min).any():
-            raise ValueError(
-                f"all values in column must be >= {self.buckets[0].min}, but got\n{col}"
-            )
-        if not (col <= self.buckets[-1].max).any():
-            raise ValueError(
-                f"all values in column must be <= {self.buckets[-1].max}, but got\n{col}"
-            )
-        # compute the return
-        ret = np.zeros_like(col, dtype=float)
+        # compute the return and check for values which are not in any bucket
+        ret = pd.Series(np.zeros(len(col)), index=col.index)
         for bucket in self.buckets:
             ret[(col >= bucket.min) & (col < bucket.max)] = bucket.val
         # make sure all values lie between 0 and 1
-        if not (ret >= 0).all():
-            raise ValueError(f"all values in column must be >= 0, but got\n{ret}")
-        if not (ret <= 1).all():
-            raise ValueError(f"all values in column must be <= 1, but got\n{ret}")
+        assert (ret >= 0).all() and (ret <= 1).all()
         return ret
 
 
@@ -213,6 +204,7 @@ class Relative:
             the scored column, with values between 0 and 1
         """
         # make sure all values are DTYPE. if not, try to cast them to DTYPE and log a warning.
+        ensure_type(col, pd.Series)
         if not col.dtype == self.DTYPE:
             logging.warning(
                 f"column dtype is {col.dtype} but scorer {self} requires dtype {self.DTYPE}, casting to {self.DTYPE}"
@@ -223,8 +215,7 @@ class Relative:
         if self.invert:
             ret = 1.0 - ret
         # make sure all values lie between 0 and 1
-        assert (ret >= 0).all()
-        assert (ret <= 1).all()
+        assert (ret >= 0).all() and (ret <= 1).all()
         return ret
 
 
