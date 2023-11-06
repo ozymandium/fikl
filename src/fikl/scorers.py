@@ -15,12 +15,16 @@ The config file should have a section that looks like this:
     config:
         <scorer config dict, which is passed to the scorer class as kwargs>
 ```
+
+TODO:
+- each scorer only ever gets used once. as such, they don't have to be as robust as they are. 
 """
 from fikl.util import ensure_type
 
 import logging
 from collections import namedtuple
 from typing import Optional, Any, Dict, List, Callable
+from inspect import cleandoc
 
 import pandas as pd
 import numpy as np
@@ -28,7 +32,7 @@ import numpy as np
 
 class Star:
     """
-    scorer that accepts input as ints on a fixed scale, such as the 5 start scale, where
+    Scorer that accepts input as ints on a fixed scale, such as the 5 start scale, where
     1 is the lowest and 5 is the highest.
     """
 
@@ -82,6 +86,14 @@ class Star:
         # make sure all values lie between 0 and 1. use assertion since this should never happen.
         assert (ret >= 0).all() and (ret <= 1).all()
         return ret
+
+    def doc(self) -> str:
+        """Publish Markdown documentation for this scorer."""
+        return """
+            {min} to {max} stars, where {min} = 0%, and {max} = 100%.
+            """.format(
+            min=self.min, max=self.max
+        )
 
 
 class Bucket:
@@ -183,7 +195,8 @@ class Bucket:
 
 class Relative:
     """Assigns scores by setting the highest value to 1 and the lowest value to 0. All other values
-    are linearly interpolated between those two values."""
+    are linearly interpolated between those two values.
+    """
 
     CODE = "relative"
     DTYPE = float
@@ -218,15 +231,20 @@ class Relative:
         assert (ret >= 0).all() and (ret <= 1).all()
         return ret
 
+    def doc(self) -> str:
+        """Publish Markdown documentation for this scorer."""
+        if self.invert:
+            return """
+                Relative to other values & lower is better: The highest value gets 0%, and the lowest value gets 100%.
+                """
+        else:
+            return """
+                Relative to other values & higher is better: The lowest value gets 0%, and the highest value gets 100%.
+                """
+
 
 class Interpolate:
-    """Scorer that assigns scores by fitting a spline to user-supplied knots. Linear spline for all
-
-    To view what cubic spines will look like:
-    https://tools.timodenk.com/cubic-spline-interpolation
-
-
-    """
+    """Scorer that does linear interpolates between user-specified knots."""
 
     CODE = "interpolate"
     DTYPE = float
@@ -281,9 +299,35 @@ class Interpolate:
             raise ValueError(f"all values in column must be between 0 and 1, but got\n{ret}")
         return ret
 
+    def doc(self) -> str:
+        """Publish Markdown documentation for this scorer. Print out the knots in a Markdown table,
+        and multiply the "out" column by 100 so that it's a percentage, but don't change the "in"
+        column.
+        """
+        return (
+            cleandoc(
+                """
+            Linearly interpolated between the following knots:
+            
+            | Value | Score (%) |
+            |-------|-----------|
+            """
+            )
+            + "\n{}".format(
+                "\n".join(
+                    [
+                        f"| {knot['in']} | {knot['out'] * 100} |"
+                        for knot in self.knots.to_dict(orient="records")
+                    ]
+                )
+            )
+        )
+
 
 class Range(Interpolate):
-    """Simplified version of Interpolate that only allows two knots, one at 0 and one at 1."""
+    """Simplified version of Interpolate that only allows two knots, one at 0 score output and one
+    at 1 score output. The input values are linearly interpolated between the two knots.
+    """
 
     CODE = "range"
     DTYPE = float
@@ -298,6 +342,13 @@ class Range(Interpolate):
             super().__init__([{"in": best, "out": 1}, {"in": worst, "out": 0}])
         else:
             raise ValueError("worst and best must be different")
+
+    def doc(self) -> str:
+        """Publish Markdown documentation for this scorer. Print out the knots in text format."""
+        return f"""
+            Linearly interpolated with {self.knots["in"][0]} mapped to {self.knots["out"][0] * 100}%
+            and {self.knots["in"][1]} mapped to {self.knots["out"][1] * 100}%.
+            """
 
 
 LOOKUP = {

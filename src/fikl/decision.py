@@ -1,4 +1,5 @@
 from fikl.scorers import LOOKUP
+from fikl.util import html_from_doc
 
 from typing import Optional, Any, Dict, List, Callable
 import logging
@@ -100,6 +101,12 @@ class Decision:
                 )
             )
 
+        self.factor_docs = {
+            factor: config["factors"][factor]["doc"] if "doc" in config["factors"][factor] else "\n"
+            for factor in config["factors"]
+        }
+        self.scorer_docs = {factor: scorers[factor].doc() for factor in scorers}
+
     def choices(self) -> list[str]:
         """
         Returns
@@ -177,11 +184,40 @@ class Decision:
         )
         return styler.to_html()
 
+    def _factors_to_html(self) -> Optional[str]:
+        """
+        Returns
+        -------
+        str
+            html as a string.
+        """
+        FMT = """
+        <h2>{name}</h2>
+        <div>
+            <h3>Description</h3>
+            <div>{description}</div>
+            <h3>Scoring</h3>
+            <div>{scoring}</div>
+        </div>
+        """
+        html = "\n".join(
+            [
+                FMT.format(
+                    name=factor,
+                    description=html_from_doc(self.factor_docs[factor]),
+                    scoring=html_from_doc(self.scorer_docs[factor]),
+                )
+                for factor in self.scores.columns
+            ]
+        )
+        return html
+
     def to_html(self, path: str = None) -> Optional[str]:
         """ """
         raw_html = self._table_to_html(self.raw, is_score=False)
         score_html = self._table_to_html(self.scores, is_score=True)
         results_html = self._table_to_html(self._get_results(), is_score=True)
+        factors_html = self._factors_to_html()
 
         # dump the html blobs into a template
         html = f"""
@@ -199,6 +235,10 @@ class Decision:
                 <h1>Results</h1>
                 <div>
                     {results_html}
+                </div>
+                <h1>Factors</h1>
+                <div>
+                    {factors_html}
                 </div>
             </body>
         </html>
