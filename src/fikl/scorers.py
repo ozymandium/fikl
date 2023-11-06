@@ -282,6 +282,24 @@ class Interpolate:
         return ret
 
 
+class Range(Interpolate):
+    """Simplified version of Interpolate that only allows two knots, one at 0 and one at 1."""
+
+    CODE = "range"
+    DTYPE = float
+
+    def __init__(self, worst: float, best: float):
+        # may be that lower value is max and higher value is min, so swap them if necessary.
+        # best is always 1.0 and worst is always 0.0, but the knots have to be given in the
+        # correct order.
+        if worst < best:
+            super().__init__([{"in": worst, "out": 0}, {"in": best, "out": 1}])
+        elif worst > best:
+            super().__init__([{"in": best, "out": 1}, {"in": worst, "out": 0}])
+        else:
+            raise ValueError("worst and best must be different")
+
+
 LOOKUP = {
     scorer.CODE: scorer
     for scorer in [
@@ -289,5 +307,6 @@ LOOKUP = {
         Bucket,
         Relative,
         Interpolate,
+        Range,
     ]
 }

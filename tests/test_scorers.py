@@ -5,7 +5,7 @@ import unittest
 import pandas as pd
 import numpy as np
 
-from fikl.scorers import Star, Bucket, Relative
+from fikl.scorers import Star, Bucket, Relative, Interpolate, Range
 
 
 class TestStar(unittest.TestCase):
@@ -85,11 +85,9 @@ class TestStar(unittest.TestCase):
         """
         Test that the values that are return from the call method are correct
         """
-        self.assertEqual(self.scorer(pd.Series([1])).tolist(), np.array([0.0]).tolist())
-        self.assertEqual(self.scorer(pd.Series([2])).tolist(), np.array([0.25]).tolist())
-        self.assertEqual(self.scorer(pd.Series([3])).tolist(), np.array([0.5]).tolist())
-        self.assertEqual(self.scorer(pd.Series([4])).tolist(), np.array([0.75]).tolist())
-        self.assertEqual(self.scorer(pd.Series([5])).tolist(), np.array([1.0]).tolist())
+        self.assertEqual(
+            self.scorer(pd.Series([1, 2, 3, 4, 5])).tolist(), [0.0, 0.25, 0.50, 0.75, 1.0]
+        )
 
 
 class TestBucket(unittest.TestCase):
@@ -162,11 +160,43 @@ class TestRelative(unittest.TestCase):
         with self.assertRaises(TypeError):
             scorer(1)
 
-    # def test_improper_call_dtypes(self) -> None:
-    #     """
-    #     Test that TypeError is raised when the wrong types are passed to the call method
-    #     """
-    #     with self.assertRaises(TypeError):
-    #         self.scorer(pd.Series([1.0]))
-    #     with self.assertRaises(TypeError):
-    #         self.scorer
+
+class TestInterpolate(unittest.TestCase):
+    """
+    Unit tests for fikl.scores.Interpolate
+    """
+
+    def setUp(self) -> None:
+        self.scorer = Interpolate(
+            knots=[
+                {"in": -1.0, "out": 0.0},
+                {"in": 0.0, "out": 1.0},
+                {"in": 1.0, "out": 0.0},
+            ]
+        )
+
+    def test_expected(self) -> None:
+        """
+        Test that the score method returns the correct value.
+        """
+        self.assertEqual(
+            self.scorer(pd.Series([-1.0, -0.5, 0.0, 0.5, 1.0])).tolist(),
+            np.array([0.0, 0.5, 1.0, 0.5, 0.0]).tolist(),
+        )
+
+
+class TestRange(unittest.TestCase):
+    """
+    Unit tests for fikl.scores.Range
+    """
+
+    def test_expected(self) -> None:
+        """
+        Test that the score method returns the correct value.
+        """
+        self.assertEqual(
+            Range(worst=0.0, best=100.0)(pd.Series([0.0, 25.0, 50.0, 75.0, 100.0])).tolist(),
+            np.array([0.0, 0.25, 0.50, 0.75, 1.0]).tolist(),
+        )
+        self.assertEqual(Range(worst=100.0, best=0.0)(pd.Series([0.0, 25.0, 50.0, 75.0, 100.0])).tolist(),
+                            np.array([1.0, 0.75, 0.50, 0.25, 0.0]).tolist())
