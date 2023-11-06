@@ -1,5 +1,5 @@
 """
-Unit tests for fikl.scorers.Star, located in fikl/scorers.py
+Unit tests for fikl.scorers.Star, located in src/fikl/scorers.py
 """
 import unittest
 import pandas as pd
@@ -80,3 +80,13 @@ class TestStar(unittest.TestCase):
             self.scorer(pd.Series([1.0]))
         with self.assertRaises(TypeError):
             self.scorer(pd.Series(["1"]))
+
+    def test_call_values(self) -> None:
+        """
+        Test that the values that are return from the call method are correct
+        """
+        self.assertEqual(self.scorer(pd.Series([1])).tolist(), np.array([0.0]).tolist())
+        self.assertEqual(self.scorer(pd.Series([2])).tolist(), np.array([0.25]).tolist())
+        self.assertEqual(self.scorer(pd.Series([3])).tolist(), np.array([0.5]).tolist())
+        self.assertEqual(self.scorer(pd.Series([4])).tolist(), np.array([0.75]).tolist())
+        self.assertEqual(self.scorer(pd.Series([5])).tolist(), np.array([1.0]).tolist())
