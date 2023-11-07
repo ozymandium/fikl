@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import bs4
 
 
 class Decision:
@@ -142,7 +143,9 @@ class Decision:
                 )
         return results
 
-    def _table_to_html(self, table: pd.DataFrame, color_score: bool = False, percent: bool = False) -> Optional[str]:
+    def _table_to_html(
+        self, table: pd.DataFrame, color_score: bool = False, percent: bool = False
+    ) -> Optional[str]:
         """
         Parameters
         ----------
@@ -175,7 +178,7 @@ class Decision:
             styler = styler.format("{0:g}")
 
         styler = styler.set_table_styles(
-            [{"selector": "th", "props": [("font-family", "Courier"), ("font-size", "11px")]}]
+            [{"selector": "th", "props": [("font-family", "Courier")]}]
         )
         styler = styler.set_properties(
             **{
@@ -228,7 +231,7 @@ class Decision:
             the metric to generate the pie chart for
         assets_dir : str
             folder to stick html assets
-        
+
         Returns
         -------
         str
@@ -258,9 +261,8 @@ class Decision:
         # want it to be relative to the html file, so use a relative path
         png_rel_path = os.path.relpath(png_abs_path, os.path.dirname(assets_dir))
         # take up 50% of screen
-        html = f"""
-            <img src="{png_rel_path}" alt="{metric}" width="50%">
-        """
+        html = f"""<img src="{png_rel_path}" alt="{metric}" width="50%"/>"""
+
         return html
 
     def _metrics_to_html(self, assets_dir: str) -> str:
@@ -295,7 +297,7 @@ class Decision:
 
         # dump the html blobs into a template
         html = f"""
-            <div>
+            <div class="table-container">
                 {table}
             </div>
             <div>
@@ -321,17 +323,27 @@ class Decision:
         html = f"""
         <!DOCTYPE html>
         <html>
+            <head>
+                <style>
+                    .table-container {{
+                        width: auto; /* Adjusts to content width */
+                        height: auto; /* Adjusts to content height */
+                        overflow: auto; /* Adds scrollbars when necessary */
+                        border: 1px solid #ccc; /* Add a border for visual separation (optional) */
+                    }}
+                </style>
+            </head>
             <body>
                 <h1>Raw Data</h1>
-                <div>
+                <div class="table-container">
                     {raw_html}
                 </div>
                 <h1>Scores</h1>
-                <div>
+                <div class="table-container">
                     {score_html}
                 </div>
                 <h1>Results</h1>
-                <div>
+                <div.>
                     {results_html}
                 </div>
                 <h1>Metrics</h1>
@@ -345,6 +357,9 @@ class Decision:
             </body>
         </html>
         """
+
+        # prettify the html with bs4 but keep the total number of lines as small as possible
+        html = bs4.BeautifulSoup(html, "html.parser").prettify()
 
         if path is not None:
             with open(path, "w") as f:

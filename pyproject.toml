@@ -14,6 +14,7 @@ dependencies = [
     "pandas == 2.1.2",
     "jinja2", # not sure why this is needed
     "markdown == 3.5.1",
+    "beautifulsoup4 == 4.12.2",
     # development
     "coverage == 7.3.2",
     "mypy == 1.6.1",
