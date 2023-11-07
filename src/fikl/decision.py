@@ -5,10 +5,12 @@ from typing import Optional, Any, Dict, List, Callable
 import logging
 import yaml
 import pprint
+import os
 
 import pandas as pd
 import numpy as np
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 class Decision:
@@ -184,8 +186,10 @@ class Decision:
         )
         return styler.to_html()
 
-    def _factors_to_html(self) -> Optional[str]:
+    def _factors_to_html(self) -> str:
         """
+        Get HTML text section which describes each factor and its scoring.
+
         Returns
         -------
         str
@@ -212,13 +216,106 @@ class Decision:
         )
         return html
 
+    def _pie_chart_to_html(self, metric: str, assets_dir: str) -> str:
+        """
+        use matplotlib.pyplot.pie to generate a pie chart for a row in self.weights to show the
+        relative weights of each factor for a given metric. remove all columns that have a weight of
+        0. use mpld3 to convert the matplotlib figure to html.
+
+        Parameters
+        ----------
+        metric : str
+            the metric to generate the pie chart for
+        assets_dir : str
+            folder to stick html assets
+        
+        Returns
+        -------
+        str
+            html as a string.
+        """
+        # get the weights for the given metric
+        weights = self.weights.loc[metric]
+        # remove all columns that have a weight of 0
+        weights = weights[weights != 0.0]
+        # get the labels for the pie chart
+        labels = weights.index
+        # get the values for the pie chart
+        values = weights.values
+        # get the colors for the pie chart
+        colors = sns.color_palette("deep", len(labels))
+
+        # generate the pie chart
+        fig, ax = plt.subplots()
+        ax.pie(values, labels=labels, colors=colors, autopct="%1.1f%%", startangle=90)
+        ax.axis("equal")
+
+        # save to png
+        png_abs_path = os.path.join(assets_dir, f"{metric}.png")
+        fig.savefig(png_abs_path)
+
+        # convert to html
+        # want it to be relative to the html file, so use a relative path
+        png_rel_path = os.path.relpath(png_abs_path, os.path.dirname(assets_dir))
+        # take up 50% of screen
+        html = f"""
+            <img src="{png_rel_path}" alt="{metric}" width="50%">
+        """
+        return html
+
+    def _metrics_to_html(self, assets_dir: str) -> str:
+        """
+        Get HTML for the metrics table and pie charts which show the relative weights of each
+        factor for each metric.
+
+        Parameters
+        ----------
+        assets_dir : str
+            folder to stick html assets
+
+        Returns
+        -------
+        str
+            html as a string.
+        """
+        table = self._table_to_html(self.weights, percent=True)
+
+        # get a matplotlib pie chart html
+        pie_charts = "\n".join(
+            [
+                f"""
+                <h2>{metric}</h2>
+                <div>
+                    {self._pie_chart_to_html(metric, assets_dir)}
+                </div>
+                """
+                for metric in self.weights.index
+            ]
+        )
+
+        # dump the html blobs into a template
+        html = f"""
+            <div>
+                {table}
+            </div>
+            <div>
+                {pie_charts}
+            </div>
+        """
+        return html
+
     def to_html(self, path: str = None) -> Optional[str]:
         """ """
+        # folder to stick html assets should have the same name as the html file, but with _assets
+        # and remove the extension
+        assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
+        os.makedirs(assets_dir, exist_ok=True)
+
         raw_html = self._table_to_html(self.raw)
         score_html = self._table_to_html(self.scores, color_score=True, percent=True)
         results_html = self._table_to_html(self._get_results(), color_score=True, percent=True)
+        metrics_html = self._metrics_to_html(assets_dir)
         factors_html = self._factors_to_html()
-        metrics_html = self._table_to_html(self.weights, percent=True)
 
         # dump the html blobs into a template
         html = f"""
