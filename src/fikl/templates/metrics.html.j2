@@ -1,0 +1,21 @@
+{# 
+Parameters
+----------
+table : str
+    html string of table
+metrics : list[str]
+    List of plain text strings of metric names
+charts : list[str]
+    List of html strings for pie chart figures
+#}
+<div class="table-container">
+    {{table}}
+</div>
+<div>
+    {% for idx in range(metrics|length) %}
+        <div>
+            <h2>{{metrics[idx]}}</h2>
+            <div>{{charts[idx]}}</div>
+        </div>
+    {% endfor %}
+</div>

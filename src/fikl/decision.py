@@ -276,31 +276,12 @@ class Decision:
         str
             html as a string.
         """
-        table = self._table_to_html(self.weights, percent=True)
-
-        # get a matplotlib pie chart html
-        pie_charts = "\n".join(
-            [
-                f"""
-                <h2>{metric}</h2>
-                <div>
-                    {self._pie_chart_to_html(metric, assets_dir)}
-                </div>
-                """
-                for metric in self.weights.index
-            ]
+        return generate_html(
+            "metrics",
+            table=self._table_to_html(self.weights, percent=True),
+            metrics=self.metrics(),
+            charts=[self._pie_chart_to_html(metric, assets_dir) for metric in self.metrics()],
         )
-
-        # dump the html blobs into a template
-        html = f"""
-            <div class="table-container">
-                {table}
-            </div>
-            <div>
-                {pie_charts}
-            </div>
-        """
-        return html
 
     def to_html(self, path: str = None) -> Optional[str]:
         """ """
