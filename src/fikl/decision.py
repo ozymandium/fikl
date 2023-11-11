@@ -131,6 +131,15 @@ class Decision:
         """
         return list(self.weights.index)
 
+    def factors(self) -> list[str]:
+        """
+        Returns
+        -------
+        list[str]
+            list of factor names
+        """
+        return list(self.weights.columns)
+
     def _get_results(self) -> pd.DataFrame:
         results = pd.DataFrame(
             index=self.choices(),
@@ -199,26 +208,12 @@ class Decision:
         str
             html as a string.
         """
-        FMT = """
-        <h2>{name}</h2>
-        <div>
-            <h3>Description</h3>
-            <div>{description}</div>
-            <h3>Scoring</h3>
-            <div>{scoring}</div>
-        </div>
-        """
-        html = "\n".join(
-            [
-                FMT.format(
-                    name=factor,
-                    description=html_from_doc(self.factor_docs[factor]),
-                    scoring=html_from_doc(self.scorer_docs[factor]),
-                )
-                for factor in self.scores.columns
-            ]
+        return generate_html(
+            "factors",
+            factors=self.factors(),
+            descriptions=[html_from_doc(self.factor_docs[factor]) for factor in self.factors()],
+            scorings=[html_from_doc(self.scorer_docs[factor]) for factor in self.factors()],
         )
-        return html
 
     def _pie_chart_to_html(self, metric: str, assets_dir: str) -> str:
         """
