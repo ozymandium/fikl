@@ -1,0 +1,39 @@
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <style>
+                    .table-container {
+                        width: auto; /* Adjusts to content width */
+                        height: auto; /* Adjusts to content height */
+                        overflow: auto; /* Adds scrollbars when necessary */
+                        border: 1px solid #ccc; /* Add a border for visual separation (optional) */
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>Raw Data</h1>
+                <div class="table-container">
+                    {{raw}}
+                </div>
+
+                <h1>Scores</h1>
+                <div class="table-container">
+                    {{score}}
+                </div>
+
+                <h1>Results</h1>
+                <div>
+                    {{results}}
+                </div>
+
+                <h1>Metrics</h1>
+                <div>
+                    {{metrics}}
+                </div>
+
+                <h1>Factors</h1>
+                <div>
+                    {{factors}}
+                </div>
+            </body>
+        </html>

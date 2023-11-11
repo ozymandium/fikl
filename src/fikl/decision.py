@@ -1,5 +1,6 @@
 from fikl.scorers import LOOKUP
 from fikl.util import html_from_doc
+from fikl.html import generate_html
 
 from typing import Optional, Any, Dict, List, Callable
 import logging
@@ -320,43 +321,14 @@ class Decision:
         factors_html = self._factors_to_html()
 
         # dump the html blobs into a template
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <style>
-                    .table-container {{
-                        width: auto; /* Adjusts to content width */
-                        height: auto; /* Adjusts to content height */
-                        overflow: auto; /* Adds scrollbars when necessary */
-                        border: 1px solid #ccc; /* Add a border for visual separation (optional) */
-                    }}
-                </style>
-            </head>
-            <body>
-                <h1>Raw Data</h1>
-                <div class="table-container">
-                    {raw_html}
-                </div>
-                <h1>Scores</h1>
-                <div class="table-container">
-                    {score_html}
-                </div>
-                <h1>Results</h1>
-                <div.>
-                    {results_html}
-                </div>
-                <h1>Metrics</h1>
-                <div>
-                    {metrics_html}
-                </div>
-                <h1>Factors</h1>
-                <div>
-                    {factors_html}
-                </div>
-            </body>
-        </html>
-        """
+        html = generate_html(
+            "index",
+            raw=raw_html,
+            score=score_html,
+            results=results_html,
+            metrics=metrics_html,
+            factors=factors_html,
+        )
 
         # prettify the html with bs4 but keep the total number of lines as small as possible
         html = bs4.BeautifulSoup(html, "html.parser").prettify()
