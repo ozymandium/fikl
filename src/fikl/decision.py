@@ -197,6 +197,7 @@ class Decision:
                 "font-size": "11px",
             }
         )
+        styler = styler.set_sticky(axis="index")
         return styler.to_html()
 
     def _factors_to_html(self) -> str:
