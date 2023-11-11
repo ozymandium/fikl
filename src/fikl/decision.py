@@ -173,7 +173,7 @@ class Decision:
         if color_score:
             styler = styler.background_gradient(
                 axis="index",
-                cmap=sns.color_palette("blend:darkred,green", as_cmap=True),
+                cmap=sns.color_palette("YlGnBu", as_cmap=True),
                 vmin=0.0,
                 vmax=1.0,
             )
@@ -284,7 +284,17 @@ class Decision:
         )
 
     def to_html(self, path: str = None) -> Optional[str]:
-        """ """
+        """
+        Parameters
+        ----------
+        path : str
+            File path where html should be written
+
+        Returns
+        -------
+        Optional[str]
+            html as a string if path is None, else None
+        """
         # folder to stick html assets should have the same name as the html file, but with _assets
         # and remove the extension
         assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
