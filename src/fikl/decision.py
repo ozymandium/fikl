@@ -1,6 +1,6 @@
 from fikl.scorers import LOOKUP
 from fikl.util import html_from_doc
-from fikl.html import generate_html
+from fikl.html import generate_html, add_toc
 
 from typing import Optional, Any, Dict, List, Callable
 import logging
@@ -330,8 +330,9 @@ class Decision:
             factors=factors_html,
             ignored_factors=ignored_factors,
         )
+        html = add_toc(html)
         html = bs4.BeautifulSoup(html, "html.parser").prettify()
-
+        
         if path is not None:
             with open(path, "w") as f:
                 f.write(html)
