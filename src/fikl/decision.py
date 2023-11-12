@@ -157,6 +157,14 @@ class Decision:
         self, table: pd.DataFrame, color_score: bool = False, percent: bool = False
     ) -> Optional[str]:
         """
+        Convert a DataFrame to html. apply a background gradient to the whole table based on the
+        score range.
+
+        TODO: Figure out how to make row label backgrounds not transparent.
+        https://pandas.pydata.org/pandas-docs/stable/user_guide/style.html
+        https://stackoverflow.com/questions/68140575/styling-the-background-color-of-pandas-index-cell
+        https://betterdatascience.com/style-pandas-dataframes/
+
         Parameters
         ----------
         table : pd.DataFrame
@@ -307,6 +315,10 @@ class Decision:
         results_html = self._table_to_html(self._get_results(), color_score=True, percent=True)
         metrics_html = self._metrics_to_html(assets_dir)
         factors_html = self._factors_to_html()
+        # a factor is ignored if all values in its column in the weights table are 0
+        ignored_factors = [
+            factor for factor in self.factors() if np.all(self.weights[factor] == 0.0)
+        ]
 
         # dump the html blobs into a template
         html = generate_html(
@@ -316,9 +328,8 @@ class Decision:
             results=results_html,
             metrics=metrics_html,
             factors=factors_html,
+            ignored_factors=ignored_factors,
         )
-
-        # prettify the html with bs4 but keep the total number of lines as small as possible
         html = bs4.BeautifulSoup(html, "html.parser").prettify()
 
         if path is not None:

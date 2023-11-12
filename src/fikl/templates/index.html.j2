@@ -25,7 +25,15 @@
                 <div>
                     {{results}}
                 </div>
-
+                <p>
+                    The following factors are not included in any metric:
+                    <ol>
+                    {% for item in ignored_factors %}
+                        <li>{{item}}</li>
+                    {% endfor %}
+                    </ol>
+                </p>
+                    
                 <h1>Metrics</h1>
                 <div>
                     {{metrics}}
