@@ -197,6 +197,7 @@ class Decision:
                 "font-size": "11px",
             }
         )
+        # make the index (city name) sticky so that it stays on the left side of the screen when scrolling
         styler = styler.set_sticky(axis="index")
         return styler.to_html()
 
@@ -279,7 +280,7 @@ class Decision:
         """
         return generate_html(
             "metrics",
-            table=self._table_to_html(self.weights, percent=True),
+            table=self._table_to_html(self.weights, color_score=True, percent=True),
             metrics=self.metrics(),
             charts=[self._pie_chart_to_html(metric, assets_dir) for metric in self.metrics()],
         )
