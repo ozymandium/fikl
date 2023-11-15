@@ -332,7 +332,7 @@ class Decision:
         )
         html = add_toc(html)
         html = bs4.BeautifulSoup(html, "html.parser").prettify()
-        
+
         if path is not None:
             with open(path, "w") as f:
                 f.write(html)
