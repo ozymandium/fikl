@@ -1,6 +1,9 @@
 """
 Handle generating HTML content from Jinja2 templates located in src/templates
 """
+from fikl.decision import Decision
+from fikl.util import html_from_doc, fill_template, build_ordered_depth_first_tree
+
 import os
 import jinja2
 import logging
@@ -8,110 +11,12 @@ import bs4
 import re
 import uuid
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
-
-
-def generate_html(template_name, **kwargs):
-    """
-    Generate HTML content from a Jinja2 template.
-
-    Parameters
-    ----------
-    template_name : str
-        Name of the template to use. This should be the name of a file in the
-        templates directory. It should not include the file extension.
-    """
-    logger = logging.getLogger(__name__)
-    logger.debug("Generating HTML from template: %s", template_name)
-    template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "templates"))
-    logger.debug("Template directory: %s", template_dir)
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
-    # display the list of templates that jinja sees
-    logger.debug(f"Available templates: {env.list_templates()}")
-    template = env.get_template(f"{template_name}.html.j2")
-    return template.render(**kwargs)
-
-
-def build_ordered_depth_first_tree(items: list[Any], levels: list[int]) -> OrderedDict:
-    """
-    An bulleted outline (like in writing) is a tree. This function builds a tree from a list of
-    items and their heading levels. The top level is 0. The items must be in order. The levels
-    must be in order. The levels must increase by 1. No skipping levels except on the way back up.
-
-    Parameters
-    ----------
-    items : list[Any]
-        List of items to build the tree from.
-    levels : list[int]
-        List of heading levels to build the tree from. The top level is 0
-
-    Returns
-    -------
-    dict
-        A tree where each node is a dict. The keys of the dict are the items. The values of the dict
-
-    """
-    # must have positive levels
-    if min(levels) < 0:
-        raise ValueError(f"levels must be positive. have {min(levels)}.")
-    # must be same length
-    if len(items) != len(levels):
-        raise ValueError(f"len(items) != len(levels): {len(items)} != {len(levels)}")
-    # when the level increases, it must only increase by 1 (no skipping levels)
-    if max(np.diff(levels)) > 1:
-        raise ValueError("levels must increase by 1. No skipping levels.")
-    # first level must be 0
-    if levels[0] != 0:
-        raise ValueError(f"levels[0] != 0: have {levels[0]}")
-
-    # create the tree by first finding parents
-    # top level items have their own index set
-    parent_idxs = [None for _ in range(len(items))]
-    for i in range(len(parent_idxs)):
-        if levels[i] == 0:
-            parent_idxs[i] = i
-            continue
-        assert i > 0
-        if levels[i] > levels[i - 1]:
-            parent_idxs[i] = i - 1
-            continue
-        if levels[i] == levels[i - 1]:
-            parent_idxs[i] = parent_idxs[i - 1]
-            continue
-        if levels[i] < levels[i - 1]:
-            # start off with the parent of the previous item
-            parent_idxs[i] = parent_idxs[i - 1]
-            # now figure out how far up the tree we have to go
-            diff = levels[i - 1] - levels[i]
-            # go up the tree
-            for _ in range(diff):
-                parent_idxs[i] = parent_idxs[parent_idxs[i]]
-    # assert every parent idx is set
-    assert all([x is not None for x in parent_idxs])
-
-    # create the tree
-    tree = OrderedDict()
-    # contains pointers to the nodes in the tree that have been added
-    nodes = [None for _ in range(len(items))]
-    for i in range(len(items)):
-        parent_idx = parent_idxs[i]
-        item = items[i]
-        if parent_idx == i:
-            # this is a top level item
-            tree[item] = OrderedDict()
-            nodes[i] = tree[item]
-            continue
-        # this is not a top level item
-        # get the parent node
-        parent_node = nodes[parent_idx]
-        # add the item to the parent node
-        parent_node[item] = OrderedDict()
-        # set the node
-        nodes[i] = parent_node[item]
-
-    return tree
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 def add_toc(html):
@@ -209,3 +114,205 @@ def add_toc(html):
         heading.append(anchor)
 
     return str(soup)
+
+
+def _table_to_html(table: pd.DataFrame, color_score: bool = False, percent: bool = False) -> str:
+    """
+    Convert a DataFrame to html. apply a background gradient to the whole table based on the
+    score range.
+
+    TODO: Figure out how to make row label backgrounds not transparent.
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/style.html
+    https://stackoverflow.com/questions/68140575/styling-the-background-color-of-pandas-index-cell
+    https://betterdatascience.com/style-pandas-dataframes/
+
+    Parameters
+    ----------
+    table : pd.DataFrame
+        DataFrame to convert to html
+    color_score : bool
+        Whether to apply a background gradient to the whole table based on the value. the score
+        range is assumed to be between 0 and 1.
+    percent : bool
+        Whether to format the values as percentages. if False, then trailing zeros will be removed
+        so that only significant digits are shown.
+
+    Returns
+    -------
+    str
+        html as a string.
+    """
+    styler = table.style
+
+    # apply a background gradient to the whole table based on the score range. it is possible to apply a background gradient to a subset of the columns, using `subset`
+    if color_score:
+        styler = styler.background_gradient(
+            axis="index",
+            cmap=sns.color_palette("YlGnBu", as_cmap=True),
+            vmin=0.0,
+            vmax=1.0,
+        )
+
+    if percent:
+        # scores are all floats between 0 and 1, so format them as percentages
+        # it is possible to apply a format to a subset of the columns, by passing a dict to format
+        styler = styler.format("{0:.0%}")
+    else:
+        # raw data may be floats or ints. either way, we just want to remove trailing zeros so
+        # that only significant digits are shown
+        styler = styler.format("{0:g}")
+
+    styler = styler.set_table_styles([{"selector": "th", "props": [("font-family", "Courier")]}])
+    styler = styler.set_properties(
+        **{
+            "text-align": "center",
+            "font-family": "Courier",
+            "font-size": "11px",
+        }
+    )
+    # make the index (city name) sticky so that it stays on the left side of the screen when scrolling
+    styler = styler.set_sticky(axis="index")
+
+    return styler.to_html()
+
+
+def _factors_to_html(decision: Decision) -> str:
+    """
+    Get HTML text section which describes each factor and its scoring.
+
+    Parameters
+    ----------
+    decision : Decision
+        Decision to get the factors from
+
+    Returns
+    -------
+    str
+        html as a string.
+    """
+    return fill_template(
+        "factors",
+        factors=decision.factors(),
+        descriptions=[html_from_doc(decision.factor_docs[factor]) for factor in decision.factors()],
+        scorings=[html_from_doc(decision.scorer_docs[factor]) for factor in decision.factors()],
+    )
+
+
+def _metrics_allotment_pie_chart_to_html(decision: Decision, metric: str, assets_dir: str) -> str:
+    """
+    use matplotlib.pyplot.pie to generate a pie chart for a row in decision.weights to show the
+    relative weights of each factor for a given metric. remove all columns that have a weight of
+    0. save the pie chart as a png and create an html img tag to display it.
+
+    Parameters
+    ----------
+    metric : str
+        the metric to generate the pie chart for
+    assets_dir : str
+        folder to stick html assets
+
+    Returns
+    -------
+    str
+        html as a string.
+    """
+    # get the weights for the given metric
+    weights = decision.weights.loc[metric]
+    # remove all columns that have a weight of 0
+    weights = weights[weights != 0.0]
+    # get the labels for the pie chart
+    labels = weights.index
+    # get the values for the pie chart
+    values = weights.values
+    # get the colors for the pie chart
+    colors = sns.color_palette("deep", len(labels))
+
+    # generate the pie chart
+    fig, ax = plt.subplots()
+    ax.pie(values, labels=labels, colors=colors, autopct="%1.1f%%", startangle=90)
+    ax.axis("equal")
+
+    # save to png
+    png_abs_path = os.path.join(assets_dir, f"{metric}.png")
+    fig.savefig(png_abs_path)
+
+    # convert to html
+    # want it to be relative to the html file, so use a relative path
+    png_rel_path = os.path.relpath(png_abs_path, os.path.dirname(assets_dir))
+    # take up 50% of screen
+    html = f"""<img src="{png_rel_path}" alt="{metric}" width="50%"/>"""
+
+    return html
+
+
+def _metrics_to_html(decision: Decision, assets_dir: str) -> str:
+    """
+    Get HTML for the metrics table and pie charts which show the relative weights of each
+    factor for each metric.
+
+    Parameters
+    ----------
+    assets_dir : str
+        folder to stick html assets
+
+    Returns
+    -------
+    str
+        html as a string.
+    """
+    return fill_template(
+        "metrics",
+        table=_table_to_html(decision.weights, color_score=True, percent=True),
+        metrics=decision.metrics(),
+        charts=[
+            _metrics_allotment_pie_chart_to_html(decision, metric, assets_dir)
+            for metric in decision.metrics()
+        ],
+    )
+
+
+def report(decision: Decision, path: str = None) -> Optional[str]:
+    """
+    Parameters
+    ----------
+    path : str
+        File path where html should be written
+
+    Returns
+    -------
+    Optional[str]
+        html as a string if path is None, else None
+    """
+    # folder to stick html assets should have the same name as the html file, but with _assets
+    # and remove the extension
+    assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
+    os.makedirs(assets_dir, exist_ok=True)
+
+    raw_html = _table_to_html(decision.raw)
+    score_html = _table_to_html(decision.scores, color_score=True, percent=True)
+    results_html = _table_to_html(decision.results, color_score=True, percent=True)
+    metrics_html = _metrics_to_html(decision, assets_dir)
+    factors_html = _factors_to_html(decision)
+    # a factor is ignored if all values in its column in the weights table are 0
+    ignored_factors = [
+        factor for factor in decision.factors() if np.all(decision.weights[factor] == 0.0)
+    ]
+
+    # dump the html blobs into a template
+    html = fill_template(
+        "index",
+        raw=raw_html,
+        score=score_html,
+        results=results_html,
+        metrics=metrics_html,
+        factors=factors_html,
+        ignored_factors=ignored_factors,
+    )
+    html = add_toc(html)
+    html = bs4.BeautifulSoup(html, "html.parser").prettify()
+
+    if path is not None:
+        with open(path, "w") as f:
+            f.write(html)
+    else:
+        return html

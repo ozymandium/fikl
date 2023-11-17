@@ -1,4 +1,5 @@
 from fikl.decision import Decision
+from fikl.html import report
 
 import argparse
 import logging
@@ -34,7 +35,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     decision = Decision(config_path=args.config, data_path=args.data)
-    decision.to_html(args.output)
+    report(decision, args.output)
 
 
 if __name__ == "__main__":
