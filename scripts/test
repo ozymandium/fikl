@@ -7,5 +7,5 @@ set -o pipefail
 REPO_DIR=$(realpath ${0:a:h}/..)
 
 python -m coverage run --source=$REPO_DIR/src -m pytest 
-# python -m coverage run -m unittest discover -t $REPO_DIR -s $REPO_DIR/tests -v
 python -m coverage html
+python -m pyright
