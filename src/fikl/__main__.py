@@ -6,7 +6,7 @@ import logging
 import sys
 import traceback
 
-import ipdb
+import ipdb  # type: ignore
 
 
 def parse_args():

@@ -64,7 +64,7 @@ class TestBuildOrderedDepthFirstTree(unittest.TestCase):
                 ("B", OrderedDict()),
                 ("C", OrderedDict()),
             ]
-        )
+        )  # type: ignore
         self.assertEqual(build_ordered_depth_first_tree(items, levels), expected)
 
     def test_nest(self) -> None:
@@ -74,7 +74,7 @@ class TestBuildOrderedDepthFirstTree(unittest.TestCase):
             [
                 ("a", OrderedDict([("b", OrderedDict([("c", OrderedDict())]))])),
             ]
-        )
+        )  # type: ignore
         self.assertEqual(build_ordered_depth_first_tree(items, levels), expected)
 
     def test_complicated(self) -> None:

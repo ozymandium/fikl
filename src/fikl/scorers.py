@@ -104,8 +104,8 @@ class Bucket:
     # required type of input
     DTYPE = float
 
-    class Bucket:
-        """A bucket is a range of values that all get the same score."""
+    class Pail:
+        """A range of values that all get the same score."""
 
         def __init__(self, min: float, max: float, val: float):
             # if inputs are not floats, cast them to floats, but log a warning
@@ -132,29 +132,29 @@ class Bucket:
         """
         Parameters
         ----------
-        buckets : dict
+        pails : dict
             each bucket is a dict with keys "min", "max", and "val". min and max are the range of
             values that get the score val. min and max must be the same type. val must be a float
             between 0 and 1.
         """
         ensure_type(buckets, list)
-        # store buckets in order of increasing min. Allow the bucket ctor to do the validation.
-        self.buckets: List[Bucket] = sorted(
-            [self.Bucket(**b) for b in buckets], key=lambda b: b.min
+        # store pails in order of increasing min. Allow the bucket ctor to do the validation.
+        self.pails: List[Bucket.Pail] = sorted(
+            [Bucket.Pail(**entry) for entry in buckets], key=lambda b: b.min
         )
-        # ensure that the buckets are contiguous
-        for i, bucket in enumerate(self.buckets[:-1]):
-            if bucket.max != self.buckets[i + 1].min:
+        # ensure that the pails are contiguous
+        for i, pail in enumerate(self.pails[:-1]):
+            if pail.max != self.pails[i + 1].min:
                 raise ValueError(
-                    "buckets must be contiguous, but got buckets {} and {}".format(
-                        bucket, self.buckets[i + 1]
+                    "pails must be contiguous, but got pails {} and {}".format(
+                        pail, self.pails[i + 1]
                     )
                 )
-        # ensure the type of the min and max are the same for all buckets
-        if not all([type(bucket.min) is type(self.buckets[0].min) for bucket in self.buckets]):
+        # ensure the type of the min and max are the same for all pails
+        if not all([type(pail.min) is type(self.pails[0].min) for pail in self.pails]):
             raise TypeError(
-                "all buckets must have the same type for min and max, but got {}".format(
-                    [type(bucket.min) for bucket in self.buckets]
+                "all pails must have the same type for min and max, but got {}".format(
+                    [type(pail.min) for pail in self.pails]
                 )
             )
 
@@ -171,22 +171,20 @@ class Bucket:
             the scored column, with values between 0 and 1
         """
         # make sure all values are between the min and max
-        if not (col >= self.buckets[0].min).all():
+        if not (col >= self.pails[0].min).all():
+            raise ValueError(f"all values in column must be >= {self.pails[0].min}, but got\n{col}")
+        if not (col < self.pails[-1].max).all():
             raise ValueError(
-                f"all values in column must be >= {self.buckets[0].min}, but got\n{col}"
-            )
-        if not (col < self.buckets[-1].max).all():
-            raise ValueError(
-                f"all values in column must be <= {self.buckets[-1].max}, but got\n{col}"
+                f"all values in column must be <= {self.pails[-1].max}, but got\n{col}"
             )
         # make sure all values are same type as bucket min and max
-        if not col.dtype == type(self.buckets[0].min):
+        if not col.dtype == type(self.pails[0].min):
             raise ValueError(
-                f"all values in column must be same type as bucket min {self.buckets[0].min} but col dtype is {col.dtype}"
+                f"all values in column must be same type as bucket min {self.pails[0].min} but col dtype is {col.dtype}"
             )
         # compute the return and check for values which are not in any bucket
-        ret = pd.Series(np.zeros(len(col)), index=col.index)
-        for bucket in self.buckets:
+        ret = pd.Series(np.zeros(len(col)), index=col.index)  # type: ignore
+        for bucket in self.pails:
             ret[(col >= bucket.min) & (col < bucket.max)] = bucket.val
         # make sure all values lie between 0 and 1
         assert (ret >= 0).all() and (ret <= 1).all()
