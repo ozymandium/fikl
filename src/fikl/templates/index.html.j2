@@ -1,8 +1,16 @@
 {# 
 Parameters
 ----------
+raw_table : str
+    html string of table with raw data provided by user
+scores_table : str
+    html string of table with scores for each factor for each choice
+results_table : str
+    html string of table with scores for each choise for each metric
+ignored_factors : list[str]
+    List of plain text strings of factors that are not included in any metric
 metrics_table : str
-    html string of table
+    html string of table with metric weights
 metrics : list[str]
     List of plain text strings of metric names
 metrics_charts : list[str]
@@ -45,8 +53,8 @@ factor_scorings : list[str]
             {% if ignored_factors|length > 0 %}
                 The following factors are not included in any metric:
                 <ol>
-                {% for item in ignored_factors %}
-                    <li>{{item}}</li>
+                {% for ignored_factor in ignored_factors %}
+                    <li>{{ignored_factor}}</li>
                 {% endfor %}
                 </ol>
             {% else %}
