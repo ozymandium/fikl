@@ -34,101 +34,7 @@ def generate_html(template_name, **kwargs):
     return template.render(**kwargs)
 
 
-def add_toc(html):
-    """
-    Add a table of contents to an HTML document with hyperlinks to each heading. Each subsection of
-    the table of contents will be indented based on the heading level. Headings without an id will
-    be given a unique id.
-
-    Parameters
-    ----------
-    html : str
-        HTML content to add the table of contents to.
-
-    Returns
-    -------
-    str
-        HTML content with the table of contents added.
-    """
-    # # this code generates a list of headings, but they are not indented.
-    # soup = bs4.BeautifulSoup(html, "html.parser")
-    # toc = soup.new_tag("div", id="toc")
-    # toc.append(soup.new_tag("h2"))
-    # toc.h2.string = "Table of Contents"
-    # toc_list = soup.new_tag("ul")
-    # toc.append(toc_list)
-    # for heading in soup.find_all(re.compile("h[0-9]{1}")):
-    #     # if the heading doesn't have an id, create one
-    #     if heading.get("id") is None:
-    #         heading["id"] = str(uuid.uuid4())
-    #     # create the link to the heading
-    #     heading_link = soup.new_tag("a", href=f"#{heading['id']}")
-    #     heading_link.string = heading.get_text()
-    #     # create the list item for the table of contents
-    #     toc_list_item = soup.new_tag("li")
-    #     toc_list_item.append(heading_link)
-    #     # add the list item to the table of contents
-    #     toc_list.append(toc_list_item)
-    # # add the table of contents to the document
-    # soup.body.insert(0, toc)
-    # return str(soup)
-
-    # this code generates a list of headings, and they are indented based on the heading level.
-    soup = bs4.BeautifulSoup(html, "html.parser")
-    toc = soup.new_tag("div", id="toc")
-    toc.append(soup.new_tag("h1"))
-    toc.h1.string = "Table of Contents"
-    toc_list = soup.new_tag("ul")
-    toc.append(toc_list)
-    # keep track of the current list item
-    current_list_item = toc_list
-    # keep track of the current heading level
-    current_heading_level = 0
-    for heading in soup.find_all(re.compile("h[0-9]{1}")):
-        # if the heading doesn't have an id, create one
-        if heading.get("id") is None:
-            heading["id"] = str(uuid.uuid4())
-        # create the link to the heading
-        heading_link = soup.new_tag("a", href=f"#{heading['id']}")
-        heading_link.string = heading.get_text()
-        # create the list item for the table of contents
-        toc_list_item = soup.new_tag("li")
-        toc_list_item.append(heading_link)
-        # add the list item to the table of contents
-        # if the heading level is greater than the current heading level, then add the list item
-        # as a child of the current list item
-        if int(heading.name[1]) > current_heading_level:
-            # need to start a new sublist since the heading level is greater than the current heading level
-            # so that the list item can be added as a child of the current list item
-            if current_list_item.name != "ul":
-                new_list = soup.new_tag("ul")
-                current_list_item.append(new_list)
-                current_list_item = new_list
-            current_list_item.append(toc_list_item)
-            current_list_item = toc_list_item
-        # if the heading level is less than the current heading level, then we are going back up
-        # the list, so we need to go back up the list to the correct level
-        elif int(heading.name[1]) < current_heading_level:
-            # go back up the list to the correct level
-            while int(heading.name[1]) < current_heading_level:
-                current_list_item = current_list_item.parent
-                current_heading_level = int(current_list_item.name[1])
-            current_list_item.append(toc_list_item)
-            current_list_item = toc_list_item
-
-        # if the heading level is the same as the current heading level, then add the list item
-        # as a sibling of the current list item
-        else:
-            current_list_item.append(toc_list_item)
-            current_list_item = toc_list_item
-        # update the current heading level
-        current_heading_level = int(heading.name[1])
-    # add the table of contents to the document
-    soup.body.insert(0, toc)
-    return str(soup)
-
-
-def build_ordered_depth_first_tree(items: list[Any], levels: list[int]):
+def build_ordered_depth_first_tree(items: list[Any], levels: list[int]) -> OrderedDict:
     """
     An bulleted outline (like in writing) is a tree. This function builds a tree from a list of
     items and their heading levels. The top level is 0. The items must be in order. The levels
@@ -206,3 +112,100 @@ def build_ordered_depth_first_tree(items: list[Any], levels: list[int]):
         nodes[i] = parent_node[item]
 
     return tree
+
+
+def add_toc(html):
+    """
+    Add a table of contents to an HTML document with hyperlinks to each heading. Each subsection of
+    the table of contents will be indented based on the heading level. Headings without an id will
+    be given a unique id.
+
+    Parameters
+    ----------
+    html : str
+        HTML content to add the table of contents to.
+
+    Returns
+    -------
+    str
+        HTML content with the table of contents added.
+    """
+
+    def _add_items_from_tree(tree, soup, current_list) -> None:
+        """
+        Recursive function to add items to the table of contents from a tree.
+
+        Parameters
+        ----------
+        tree : OrderedDict
+            Tree to add items from. Keys are (heading name, heading id) tuples, where the heading name is a string that
+            will be displayed in the table of contents, and the heading id is the id of the heading
+            that the table of contents item links to. Values are OrderedDicts that contain the
+            children of the heading. If a heading has no children, then the value is an empty.
+        soup : bs4.BeautifulSoup
+            BeautifulSoup object that contains the HTML content.
+        current_list : bs4.element.Tag
+            BeautifulSoup tag that is the current list to add items to.
+        """
+        for (text, link), children in tree.items():
+            # create the link to the heading
+            heading_link = soup.new_tag("a", href=f"#{link}")
+            heading_link.string = text
+            # create the list item for the table of contents
+            toc_list_item = soup.new_tag("li")
+            toc_list_item.append(heading_link)
+            # add the list item to the table of contents
+            current_list.append(toc_list_item)
+            # if the heading has children, then create a new list and add it to the list item
+            if len(children) > 0:
+                new_list = soup.new_tag("ul")
+                toc_list_item.append(new_list)
+                # call this function recursively to add the children
+                _add_items_from_tree(children, soup, new_list)
+
+    # first parse the html
+    soup = bs4.BeautifulSoup(html, "html.parser")
+
+    # now iterate through the headings and record the title, level, and id. for every heading that
+    # doesn't have an id, create one. along the way, we're building lists of the heading name, levels,
+    # and ids, so that we can build the tree.
+    titles = []
+    levels = []
+    ids = []
+    for heading in soup.find_all(re.compile("h[0-9]{1}")):
+        # if the heading doesn't have an id, create one
+        if heading.get("id") is None:
+            heading["id"] = str(uuid.uuid4())
+        # record the name, level, and id
+        titles.append(heading.get_text())
+        # subtract 1 from the heading level so that the top level is 0
+        levels.append(int(heading.name[1]) - 1)
+        ids.append(heading["id"])
+
+    # build the tree
+    tree = build_ordered_depth_first_tree(list(zip(titles, ids)), levels)
+
+    # start the toc list
+    toc = soup.new_tag("div", id="toc_div")
+    toc.append(soup.new_tag("h1"))
+    toc.h1.string = "Table of Contents"
+    # give the toc an id so that we can style it
+    toc.h1["id"] = "toc_h1"
+    toc_list = soup.new_tag("ul")
+    # limit the height of the toc list to half the screen and make it scrollable
+    toc_list["style"] = "height: 50vh; overflow-y: scroll;"
+    toc.append(toc_list)
+    # add the toc to the soup
+    soup.body.insert(0, toc)
+
+    # now call the recursive function to add the items to the toc with proper indentation and links
+    _add_items_from_tree(tree, soup, toc_list)
+
+    # make each heading clickable by wrapping it in an anchor tag
+    for heading in soup.find_all(re.compile("h[0-9]{1}")):
+        anchor = soup.new_tag("a", href=f"#{heading['id']}")
+        anchor.string = heading.get_text()
+        heading.string = ""
+        heading.append(anchor)
+
+    return str(soup)
