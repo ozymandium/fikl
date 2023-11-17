@@ -210,28 +210,6 @@ def _table_to_html(table: pd.DataFrame, color_score: bool = False, percent: bool
     return styler.to_html()
 
 
-def _factors_to_html(decision: Decision) -> str:
-    """
-    Get HTML text section which describes each factor and its scoring.
-
-    Parameters
-    ----------
-    decision : Decision
-        Decision to get the factors from
-
-    Returns
-    -------
-    str
-        html as a string.
-    """
-    return fill_template(
-        "factors",
-        factors=decision.factors(),
-        descriptions=[html_from_doc(decision.factor_docs[factor]) for factor in decision.factors()],
-        scorings=[html_from_doc(decision.scorer_docs[factor]) for factor in decision.factors()],
-    )
-
-
 def _metrics_allotment_pie_chart_to_html(decision: Decision, metric: str, assets_dir: str) -> str:
     """
     use matplotlib.pyplot.pie to generate a pie chart for a row in decision.weights to show the
@@ -279,32 +257,6 @@ def _metrics_allotment_pie_chart_to_html(decision: Decision, metric: str, assets
     return html
 
 
-def _metrics_to_html(decision: Decision, assets_dir: str) -> str:
-    """
-    Get HTML for the metrics table and pie charts which show the relative weights of each
-    factor for each metric.
-
-    Parameters
-    ----------
-    assets_dir : str
-        folder to stick html assets
-
-    Returns
-    -------
-    str
-        html as a string.
-    """
-    return fill_template(
-        "metrics",
-        table=_table_to_html(decision.weights, color_score=True, percent=True),
-        metrics=decision.metrics(),
-        charts=[
-            _metrics_allotment_pie_chart_to_html(decision, metric, assets_dir)
-            for metric in decision.metrics()
-        ],
-    )
-
-
 def report(decision: Decision, path: str = None) -> Optional[str]:
     """
     Parameters
@@ -318,15 +270,23 @@ def report(decision: Decision, path: str = None) -> Optional[str]:
         html as a string if path is None, else None
     """
     # folder to stick html assets should have the same name as the html file, but with _assets
-    # and remove the extension
     assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
     os.makedirs(assets_dir, exist_ok=True)
 
-    raw_html = _table_to_html(decision.raw)
-    score_html = _table_to_html(decision.scores, color_score=True, percent=True)
-    results_html = _table_to_html(decision.results, color_score=True, percent=True)
-    metrics_html = _metrics_to_html(decision, assets_dir)
-    factors_html = _factors_to_html(decision)
+    raw_table = _table_to_html(decision.raw)
+    scores_table = _table_to_html(decision.scores, color_score=True, percent=True)
+    results_table = _table_to_html(decision.results, color_score=True, percent=True)
+    metrics_table = _table_to_html(decision.weights, color_score=True, percent=True)
+    metric_charts = (
+        [
+            _metrics_allotment_pie_chart_to_html(decision, metric, assets_dir)
+            for metric in decision.metrics()
+        ],
+    )
+    factor_descriptions = [
+        html_from_doc(decision.factor_docs[factor]) for factor in decision.factors()
+    ]
+    factor_scorings = [html_from_doc(decision.scorer_docs[factor]) for factor in decision.factors()]
     # a factor is ignored if all values in its column in the weights table are 0
     ignored_factors = [
         factor for factor in decision.factors() if np.all(decision.weights[factor] == 0.0)
@@ -335,11 +295,15 @@ def report(decision: Decision, path: str = None) -> Optional[str]:
     # dump the html blobs into a template
     html = fill_template(
         "index",
-        raw=raw_html,
-        score=score_html,
-        results=results_html,
-        metrics=metrics_html,
-        factors=factors_html,
+        raw_table=raw_table,
+        scores_table=scores_table,
+        results_table=results_table,
+        metrics_table=metrics_table,
+        metrics=decision.metrics(),
+        metric_charts=metric_charts,
+        factors=decision.factors(),
+        factor_descriptions=factor_descriptions,
+        factor_scorings=factor_scorings,
         ignored_factors=ignored_factors,
     )
     html = add_toc(html)

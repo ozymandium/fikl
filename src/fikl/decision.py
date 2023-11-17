@@ -125,6 +125,7 @@ class Decision:
                 self.results.loc[choice, metric] = np.dot(
                     self.weights.loc[metric], self.scores.loc[choice]
                 )
+        self.logger.info("Results:\n{}".format(pprint.pformat(self.results)))
 
         # store docs for each factor and scorer
         self.factor_docs = {

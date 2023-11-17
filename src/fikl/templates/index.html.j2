@@ -1,47 +1,85 @@
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <style>
-                    .table-container {
-                        width: auto; /* Adjusts to content width */
-                        height: auto; /* Adjusts to content height */
-                        overflow: auto; /* Adds scrollbars when necessary */
-                        border: 1px solid #ccc; /* Add a border for visual separation (optional) */
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Raw Data</h1>
-                <div class="table-container">
-                    {{raw}}
-                </div>
+{# 
+Parameters
+----------
+metrics_table : str
+    html string of table
+metrics : list[str]
+    List of plain text strings of metric names
+metrics_charts : list[str]
+    List of html strings for pie chart figures
+factors : list[str]
+    List of plain text names of factors
+factor_descriptions : list[str]
+    List of html formatted descriptions of factors, in the same order as factors
+factor_scorings : list[str]
+    List of html formatted scorings of factors, in the same order as factors
+#}
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .table-container {
+                width: auto; /* Adjusts to content width */
+                height: auto; /* Adjusts to content height */
+                overflow: auto; /* Adds scrollbars when necessary */
+                border: 1px solid #ccc; /* Add a border for visual separation (optional) */
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Raw Data</h1>
+        <div class="table-container">
+            {{raw_table}}
+        </div>
 
-                <h1>Scores</h1>
-                <div class="table-container">
-                    {{score}}
-                </div>
+        <h1>Scores</h1>
+        <div class="table-container">
+            {{scores_table}}
+        </div>
 
-                <h1>Results</h1>
-                <div>
-                    {{results}}
-                </div>
-                <p>
-                    The following factors are not included in any metric:
-                    <ol>
-                    {% for item in ignored_factors %}
-                        <li>{{item}}</li>
-                    {% endfor %}
-                    </ol>
-                </p>
-                    
-                <h1>Metrics</h1>
-                <div>
-                    {{metrics}}
-                </div>
+        <h1>Results</h1>
+        <div>
+            {{results_table}}
+        </div>
+        <p>
+            {% if ignored_factors|length > 0 %}
+                The following factors are not included in any metric:
+                <ol>
+                {% for item in ignored_factors %}
+                    <li>{{item}}</li>
+                {% endfor %}
+                </ol>
+            {% else %}
+                All factors are included in at least one metric!
+            {% endif %}
+        </p>
+            
+        <h1>Metrics</h1>
+        <div>
+            <div class="table-container">
+                {{metrics_table}}
+            </div>
+            <div>
+                {% for idx in range(metrics|length) %}
+                    <div>
+                        <h2>{{metrics[idx]}}</h2>
+                        <div>{{metric_charts[idx]}}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
 
-                <h1>Factors</h1>
+        <h1>Factors</h1>
+        <div>
+            {% for idx in range(factors|length) %}
+                <h2>{{factors[idx]}}</h2>
                 <div>
-                    {{factors}}
+                    <h3>Description</h3>
+                    <div>{{factor_descriptions[idx]}}</div>
+                    <h3>Scoring</h3>
+                    <div>{{factor_scorings[idx]}}</div>
                 </div>
-            </body>
-        </html>
+            {% endfor %}
+        </div>
+    </body>
+</html>
