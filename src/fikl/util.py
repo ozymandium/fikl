@@ -4,24 +4,31 @@ Common utilities
 from collections import OrderedDict
 import logging
 import os
-from typing import Any
-
-from inspect import cleandoc
-from markdown import markdown as html_from_md
+from typing import Any, Type
 
 import jinja2
 import numpy as np
 
 
-def ensure_type(obj, t):
-    """Ensure that an object is of a certain type"""
-    if type(obj) is not t:
-        raise TypeError("object {} is not of type {}".format(obj, t))
+def ensure_type(obj: Any, t: Type, inherit: bool = False) -> None:
+    """Ensure that an object is of a certain type.
 
-
-def html_from_doc(doc: str) -> str:
-    """take an indented markdown string and convert it to html"""
-    return html_from_md(cleandoc(doc), extensions=["extra"])
+    Parameters
+    ----------
+    obj : Any
+        The object to check
+    t : type
+        The type to check against
+    inherit : bool (default: False)
+        If True, then the object is allowed to be a subclass of the type. If False, then the object
+        must be exactly the type.
+    """
+    if inherit:
+        if not isinstance(obj, t):
+            raise TypeError("object {} is not of type {}".format(obj, t))
+    else:
+        if type(obj) is not t:
+            raise TypeError("object {} is not of type {}".format(obj, t))
 
 
 def fill_template(template_name, **kwargs):

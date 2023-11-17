@@ -2,21 +2,55 @@
 Handle generating HTML content from Jinja2 templates located in src/templates
 """
 from fikl.decision import Decision
-from fikl.util import html_from_doc, fill_template, build_ordered_depth_first_tree
+from fikl.util import fill_template, build_ordered_depth_first_tree
 
 import os
-import jinja2
 import logging
 import bs4
 import re
 import uuid
 from collections import OrderedDict
 from typing import Any, Optional
+from inspect import cleandoc
 
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from markdown import markdown as html_from_md
+
+
+def html_from_doc(doc: str) -> str:
+    """
+    take an indented markdown string and convert it to html
+
+    Parameters
+    ----------
+    doc : str
+        indented markdown string
+
+    Returns
+    -------
+    str
+        html as a string
+    """
+    return html_from_md(cleandoc(doc), extensions=["extra"])
+
+
+def prettify(html: str) -> str:
+    """
+    Take an html string and prettify it.
+
+    Parameters
+    ----------
+    html : str
+
+    Returns
+    -------
+    str
+        prettified html
+    """
+    return bs4.BeautifulSoup(html, "html.parser").prettify()
 
 
 def add_toc(html):
