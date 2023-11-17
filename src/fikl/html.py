@@ -70,7 +70,9 @@ def add_toc(html):
         HTML content with the table of contents added.
     """
 
-    def _add_items_from_tree(tree, soup, current_list) -> None:
+    def _add_items_from_tree(
+        tree: OrderedDict, soup: bs4.BeautifulSoup, current_list: bs4.element.Tag
+    ) -> None:
         """
         Recursive function to add items to the table of contents from a tree.
 
@@ -127,15 +129,15 @@ def add_toc(html):
     # start the toc list
     toc = soup.new_tag("div", id="toc_div")
     toc.append(soup.new_tag("h1"))
-    toc.h1.string = "Table of Contents"
+    toc.h1.string = "Table of Contents"  # type: ignore
     # give the toc an id so that we can style it
-    toc.h1["id"] = "toc_h1"
+    toc.h1["id"] = "toc_h1"  # type: ignore
     toc_list = soup.new_tag("ul")
     # limit the height of the toc list to half the screen and make it scrollable
     toc_list["style"] = "height: 50vh; overflow-y: scroll;"
     toc.append(toc_list)
     # add the toc to the soup
-    soup.body.insert(0, toc)
+    soup.body.insert(0, toc)  # type: ignore
 
     # now call the recursive function to add the items to the toc with proper indentation and links
     _add_items_from_tree(tree, soup, toc_list)
