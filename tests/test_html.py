@@ -4,6 +4,7 @@ Tests code in src/fikl/html.py
 from fikl.html import (
     html_from_doc,
     prettify,
+    add_toc,
 )
 
 import unittest
@@ -115,3 +116,76 @@ class TestHtmlFromDoc(unittest.TestCase):
         </table>
         """
         self.assertEqual(prettify(html_from_doc(doc)), prettify(html))
+
+
+class TestAddToc(unittest.TestCase):
+    """
+    Tests add_toc(), which adds an indented table of contents to an html document. Since random
+    UUIDs are generated for ids where none are provided, we have to specify the expected ids in the
+    test cases.
+    """
+
+    def test_simple(self) -> None:
+        """
+        Tests a simple case.
+        """
+        # make sure we can see inequality error messages
+        self.maxDiff = None
+        html = """
+        <html>
+        <body>
+        <h1 id="heading-1">Heading 1</h1>
+        <h2 id="heading-2">Heading 2</h2>
+        <h1 id="heading-1-again">Heading 1 Again</h1>
+        </body>
+        </html>
+        """
+        expected = """
+        <html>
+        <body>
+        <div id="toc_div">
+        <h1 id="toc_h1">
+            <a href="#toc_h1">
+            Table of Contents
+            </a>
+        </h1>
+        <ul style="height: 50vh; overflow-y: scroll;">
+            <li>
+            <a href="#heading-1">
+            Heading 1
+            </a>
+            <ul>
+            <li>
+            <a href="#heading-2">
+                Heading 2
+            </a>
+            </li>
+            </ul>
+            </li>
+            <li>
+            <a href="#heading-1-again">
+            Heading 1 Again
+            </a>
+            </li>
+        </ul>
+        </div>
+        <h1 id="heading-1">
+        <a href="#heading-1">
+            Heading 1
+        </a>
+        </h1>
+        <h2 id="heading-2">
+        <a href="#heading-2">
+            Heading 2
+        </a>
+        </h2>
+        <h1 id="heading-1-again">
+        <a href="#heading-1-again">
+            Heading 1 Again
+        </a>
+        </h1>
+        </body>
+        </html>        
+        """
+        result = prettify(add_toc(html))
+        self.assertEqual(result, prettify(expected))
