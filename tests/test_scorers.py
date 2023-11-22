@@ -42,11 +42,11 @@ class TestStar(unittest.TestCase):
         Test that TypeError is raised when the wrong types are passed to the constructor
         """
         with self.assertRaises(TypeError):
-            Star(min=1.0, max=5)
+            Star(min=1.0, max=5)  # type: ignore
         with self.assertRaises(TypeError):
-            Star(min=1, max=5.0)
+            Star(min=1, max=5.0)  # type: ignore
         with self.assertRaises(TypeError):
-            Star(min=1.0, max=5.0)
+            Star(min=1.0, max=5.0)  # type: ignore
 
     def test_improper_ctor_values(self) -> None:
         """
@@ -150,15 +150,15 @@ class TestRelative(unittest.TestCase):
         """
         scorer = Relative(invert=False)
         with self.assertRaises(TypeError):
-            scorer(1.0)
+            scorer(1.0)  # type: ignore
         with self.assertRaises(TypeError):
-            scorer("1")
+            scorer("1")  # type: ignore
         with self.assertRaises(TypeError):
-            scorer([1])
+            scorer([1])  # type: ignore
         with self.assertRaises(TypeError):
-            scorer((1,))
+            scorer((1,))  # type: ignore
         with self.assertRaises(TypeError):
-            scorer(1)
+            scorer(1)  # type: ignore
 
 
 class TestInterpolate(unittest.TestCase):

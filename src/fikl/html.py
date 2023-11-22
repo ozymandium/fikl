@@ -259,17 +259,16 @@ def _metrics_allotment_pie_chart_to_html(decision: Decision, metric: str, assets
     return html
 
 
-def report(decision: Decision, path: str = None) -> Optional[str]:
+def report(decision: Decision, path: str) -> None:
     """
+    Generate an html report for a decision.
+
     Parameters
     ----------
+    decision : Decision
+        Decision to generate the report for
     path : str
         File path where html should be written
-
-    Returns
-    -------
-    Optional[str]
-        html as a string if path is None, else None
     """
     # folder to stick html assets should have the same name as the html file, but with _assets
     assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
@@ -311,8 +310,5 @@ def report(decision: Decision, path: str = None) -> Optional[str]:
     html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()
 
-    if path is not None:
-        with open(path, "w") as f:
-            f.write(html)
-    else:
-        return html
+    with open(path, "w") as f:
+        f.write(html)

@@ -267,7 +267,7 @@ class Interpolate:
         # create a function to interpolate between the knots
         self.spline = lambda x: np.interp(x, self.knots["in"], self.knots["out"])
 
-    def __call__(self, col: pd.Series) -> pd.Series:
+    def __call__(self, col: pd.Series) -> np.ndarray:
         """
         Parameters
         ----------
@@ -276,8 +276,8 @@ class Interpolate:
 
         Returns
         -------
-        pd.Series
-            the scored column, with values between 0 and 1
+        np.ndarray
+            scored column, with values between 0 and 1
         """
         # make sure all values are DTYPE. if not, try to cast them to DTYPE and log a warning.
         if not col.dtype == self.DTYPE:
