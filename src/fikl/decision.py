@@ -73,8 +73,7 @@ class Decision:
             if factor not in self.raw.columns
         }
         for factor, fetcher in fetchers.items():
-            new_col = fetcher.fetch(self.choices())
-            self.raw[factor] = new_col
+            self.raw[factor] = fetcher.fetch(self.choices())
 
         # allow the user to input executable code in the csv. eval it here.
         self.raw = self.raw.applymap(lambda x: eval(x) if isinstance(x, str) else x)

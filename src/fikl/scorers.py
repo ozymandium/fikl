@@ -350,7 +350,7 @@ class Range(Interpolate):
 
 
 LOOKUP = {
-    scorer.CODE: scorer
+    scorer.CODE: scorer  # type: ignore
     for scorer in [
         Star,
         Bucket,

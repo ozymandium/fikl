@@ -58,8 +58,10 @@ class ObesityFetcher:
         # check that all choices are in the data
         if not set(choices).issubset(set(df.index)):
             raise ValueError(f"choices not in data: {set(choices) - set(df.index)}")
+        # narrow the data to only the choices we want
+        df = df.loc[choices]
         # return the obesity rate for each choice
-        return df.loc[choices, "Data_Value"]
+        return df["Data_Value"].astype(float)
 
 
 LOOKUP = {
