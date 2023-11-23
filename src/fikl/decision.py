@@ -1,4 +1,5 @@
-from fikl.scorers import LOOKUP
+from fikl.scorers import LOOKUP as SCORER_LOOKUP
+from fikl.fetchers import LOOKUP as FETCHER_LOOKUP
 
 from typing import Optional, Any, Dict, List
 import logging
@@ -64,6 +65,17 @@ class Decision:
         # read the ranking matrix from the csv as a dataframe
         # the index is the choice name, the columns are the factors
         self.raw = pd.read_csv(data_path, index_col="choice")
+
+        # any factor that is not a column in the raw data already will need to be fetched
+        fetchers = {
+            factor: FETCHER_LOOKUP[factor]()
+            for factor, cfg in config["factors"].items()
+            if factor not in self.raw.columns
+        }
+        for factor, fetcher in fetchers.items():
+            new_col = fetcher.fetch(self.choices())
+            self.raw[factor] = new_col
+
         # allow the user to input executable code in the csv. eval it here.
         self.raw = self.raw.applymap(lambda x: eval(x) if isinstance(x, str) else x)
         self.logger.debug("raw scores:\n{}".format(self.raw))
@@ -72,7 +84,7 @@ class Decision:
         # a scorer takes in the value from raw_scores and the config for that factor, and returns
         # an int score that is inside of the score range described by MinMax
         scorers = {
-            factor: LOOKUP[cfg["type"]](**cfg["config"])
+            factor: SCORER_LOOKUP[cfg["type"]](**cfg["config"])
             for factor, cfg in config["factors"].items()
         }
 
@@ -141,7 +153,7 @@ class Decision:
         list[str]
             list of choice names
         """
-        return list(self.scores.index)
+        return list(self.raw.index)
 
     def metrics(self) -> list[str]:
         """
