@@ -1,0 +1,39 @@
+factors:
+    cost:
+        type: relative
+        config:
+            invert: true
+    size: 
+        type: interpolate
+        config:
+            knots:
+                - {in: 0.0, out: 0.0}
+                - {in: 5.0, out: 1.0}
+                - {in: 10.0, out: 0.0}
+    looks:
+        type: star
+        config:
+            min: 1
+            max: 5
+    economy:
+        type: bucket
+        config:
+            buckets:
+                - {min: 0.0, max: 2.0, val: 0.2}
+                - {min: 2.0, max: 4.0, val: 0.4}
+                - {min: 4.0, max: 6.0, val: 0.6}
+                - {min: 6.0, max: 8.0, val: 0.8}
+                - {min: 8.0, max: 10.0, val: 1.0}
+    power:
+        type: range
+        config:
+            best: 10.0
+            worst: 0.0
+metrics:
+    smart:
+        cost: 1.0
+        size: 1.0
+        economy: 1.0
+    fun:
+        looks: 1.0
+        power: 1.0

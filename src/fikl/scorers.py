@@ -190,6 +190,24 @@ class Bucket:
         assert (ret >= 0).all() and (ret <= 1).all()
         return ret
 
+    def doc(self) -> str:
+        """Publish Markdown documentation for this scorer."""
+        return (
+            cleandoc(
+                """
+            Buckets: The following buckets are used to assign scores:
+            
+            | Min | Max | Score (%) |
+            |-----|-----|-----------|
+            """
+            )
+            + "\n{}".format(
+                "\n".join(
+                    [f"| {pail.min} | {pail.max} | {pail.val * 100} |" for pail in self.pails]
+                )
+            )
+        )
+
 
 class Relative:
     """Assigns scores by setting the highest value to 1 and the lowest value to 0. All other values

@@ -43,13 +43,13 @@ class Decision:
         Get the list of factor names
     """
 
-    def __init__(self, config_path: str, data_path: str):
+    def __init__(self, config_path: str, raw_path: str):
         """
         Parameters
         ----------
         config_path : str
             File path where config yaml should be read
-        data_path : str
+        raw_path : str
             File path where data csv should be read
 
         Returns
@@ -64,7 +64,7 @@ class Decision:
 
         # read the ranking matrix from the csv as a dataframe
         # the index is the choice name, the columns are the factors
-        self.raw = pd.read_csv(data_path, index_col="choice")
+        self.raw = pd.read_csv(raw_path, index_col="choice")
 
         # any factor that is not a column in the raw data already will need to be fetched
         fetchers = {
@@ -76,7 +76,7 @@ class Decision:
             self.raw[factor] = fetcher.fetch(self.choices())
 
         # allow the user to input executable code in the csv. eval it here.
-        self.raw = self.raw.applymap(lambda x: eval(x) if isinstance(x, str) else x)
+        self.raw = self.raw.map(lambda x: eval(x) if isinstance(x, str) else x)
         self.logger.debug("raw scores:\n{}".format(self.raw))
 
         # determine which scorer to use for each factor
