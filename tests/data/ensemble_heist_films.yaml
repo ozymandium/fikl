@@ -1,45 +1,45 @@
+actors_scoring: &actors_scoring
+    type: relative
+    config:
+        invert: false
+rotten_tomatoes_scoring: &rotten_tomatoes_scoring
+    type: range
+    config:
+        best: 100.0
+        worst: 0.0
+sam_scoring: &sam_scoring   
+    type: star
+    config:
+        min: 1
+        max: 5
+john_scoring: &john_scoring
+    type: star
+    config:
+        min: 1
+        max: 5
+henry_scoring: &henry_scoring
+    type: star
+    config:
+        min: 1
+        max: 5
+jane_scoring: &jane_scoring 
+    type: star
+    config:
+        min: 1
+        max: 5
+lighthearted_scoring: &lighthearted_scoring
+    type: star
+    config:
+        min: 0
+        max: 1
 factors:
-    actors:
-        type: relative
-        config:
-            invert: false
-        doc: "The number of a-list actors in the film."
-    rotten tomatoes:
-        type: range
-        config:
-            best: 100.0
-            worst: 0.0
-        doc: "The Rotten Tomatoes score for the film."
-    sam:
-        type: star
-        config:
-            min: 1
-            max: 5
-        doc: "how much sam wants to watch it"
-    john:
-        type: star
-        config:
-            min: 1
-            max: 5
-        doc: "how much john wants to watch it"
-    henry:
-        type: star
-        config:
-            min: 1
-            max: 5
-        doc: "how much henry wants to watch it"
-    jane:
-        type: star
-        config:
-            min: 1
-            max: 5
-        doc: "how much jane wants to watch it"
-    lighthearted:
-        type: star
-        config:
-            min: 0
-            max: 1
-        doc: "is the film lighthearted?"
+    actors: *actors_scoring
+    rotten tomatoes: *rotten_tomatoes_scoring
+    sam: *sam_scoring
+    john: *john_scoring
+    henry: *henry_scoring
+    jane: *jane_scoring
+    lighthearted: *lighthearted_scoring
 metrics:
     personal:
         john: 1.0
