@@ -24,8 +24,6 @@ class Decision:
     scores : pd.DataFrame
         the ranking matrix. the index is the choice name, the columns are the factors. values are
         floats between 0 and 1.
-    score_range : MinMax
-        the minimum and maximum possible scores.
     weights : pd.DataFrame
         the weights for each factor for each metric. the index is the metric name, the columns are
         the factors. the "All" metric is automatically added which includes all factors

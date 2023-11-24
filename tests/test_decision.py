@@ -72,3 +72,8 @@ class TestDecision(unittest.TestCase):
     def test_results(self) -> None:
         expected = self.decision.scores.dot(self.decision.weights.T)
         assert_frame_equal(self.decision.results, expected)
+
+    def test_getters(self) -> None:
+        self.assertEqual(self.decision.choices(), ["one", "two", "three", "four", "five"])
+        self.assertEqual(self.decision.metrics(), ["smart", "fun"])
+        self.assertEqual(self.decision.factors(), ["cost", "size", "looks", "economy", "power"])
