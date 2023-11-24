@@ -34,7 +34,7 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    decision = Decision(config_path=args.config, data_path=args.data)
+    decision = Decision(config_path=args.config, raw_path=args.data)
     report(decision, args.output)
 
 
