@@ -57,3 +57,18 @@ class TestDecision(unittest.TestCase):
         )
         expected = expected.set_index("choice")
         assert_frame_equal(self.decision.scores, expected)
+
+    def test_weights(self) -> None:
+        expected = pd.DataFrame(
+            data=[
+                [1.0 / 3.0, 1.0 / 3.0, 0.0, 1.0 / 3.0, 0.0],
+                [0.0, 0.0, 0.5, 0.0, 0.5],
+            ],
+            columns=["cost", "size", "looks", "economy", "power"],
+        )
+        expected = expected.set_index(pd.Index(["smart", "fun"], dtype="object"))
+        assert_frame_equal(self.decision.weights, expected)
+
+    def test_results(self) -> None:
+        expected = self.decision.scores.dot(self.decision.weights.T)
+        assert_frame_equal(self.decision.results, expected)

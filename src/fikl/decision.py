@@ -126,16 +126,7 @@ class Decision:
             )
 
         # generate the results table
-        self.results = pd.DataFrame(
-            index=self.choices(),
-            columns=self.metrics(),
-            dtype=float,
-        )
-        for choice in self.choices():
-            for metric in self.metrics():
-                self.results.loc[choice, metric] = np.dot(
-                    self.weights.loc[metric], self.scores.loc[choice]
-                )
+        self.results = self.scores.dot(self.weights.T)
         self.logger.info("Results:\n{}".format(pprint.pformat(self.results)))
 
         # store docs for each factor and scorer
