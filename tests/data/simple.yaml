@@ -28,17 +28,21 @@ power_scoring: &power_scoring
     config:
         best: 10.0
         worst: 0.0
-factors:
-    cost: *cost_scoring
-    size: *size_scoring
-    looks: *looks_scoring
-    economy: *economy_scoring
-    power: *power_scoring
 metrics:
     smart:
-        cost: 1.0
-        size: 1.0
-        economy: 1.0
+        cost: 
+            scoring: *cost_scoring
+            weight: 1.0
+        size: 
+            scoring: *size_scoring
+            weight: 1.0
+        economy: 
+            scoring: *economy_scoring
+            weight: 1.0
     fun:
-        looks: 1.0
-        power: 1.0
+        looks:
+            scoring: *looks_scoring
+            weight: 1.0
+        power:
+            scoring: *power_scoring
+            weight: 1.0

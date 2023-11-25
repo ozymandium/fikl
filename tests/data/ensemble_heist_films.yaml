@@ -32,28 +32,46 @@ lighthearted_scoring: &lighthearted_scoring
     config:
         min: 0
         max: 1
-factors:
-    actors: *actors_scoring
-    rotten tomatoes: *rotten_tomatoes_scoring
-    sam: *sam_scoring
-    john: *john_scoring
-    henry: *henry_scoring
-    jane: *jane_scoring
-    lighthearted: *lighthearted_scoring
 metrics:
     personal:
-        john: 1.0
-        sam: 1.0
-        henry: 1.0
-        jane: 1.0
+        john:
+            scoring: *john_scoring
+            weight: 1.0
+        sam:
+            scoring: *sam_scoring
+            weight: 1.0
+        henry:
+            scoring: *henry_scoring
+            weight: 1.0
+        jane:
+            scoring: *jane_scoring
+            weight: 1.0
     critical:
-        rotten tomatoes: 1.0
-        actors: 1.0
+        rotten tomatoes: 
+            scoring: *rotten_tomatoes_scoring
+            weight: 1.0
+        actors: 
+            scoring: *actors_scoring
+            weight: 1.0
     all:
-        rotten tomatoes: 1.0
-        actors: 1.0
-        lighthearted: 1.0
-        henry: 0.5
-        jane: 0.5
-        john: 0.5
-        sam: 0.5
+        rotten tomatoes: 
+            scoring: *rotten_tomatoes_scoring
+            weight: 1.0
+        actors: 
+            scoring: *actors_scoring
+            weight: 1.0
+        lighthearted: 
+            scoring: *lighthearted_scoring
+            weight: 1.0
+        henry: 
+            scoring: *henry_scoring
+            weight: 0.5
+        jane: 
+            scoring: *jane_scoring
+            weight: 0.5
+        john: 
+            scoring: *john_scoring
+            weight: 0.5
+        sam: 
+            scoring: *sam_scoring
+            weight: 0.5
