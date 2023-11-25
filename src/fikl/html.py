@@ -285,37 +285,40 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         os.makedirs(assets_dir, exist_ok=True)
 
     raw_table = _table_to_html(decision.raw)
-    scores_table = _table_to_html(decision.scores, color_score=True, percent=True)
+    scores_tables = {
+        metric: _table_to_html(decision.scores[metric], color_score=True, percent=True)
+        for metric in decision.metrics()
+    }
     results_table = _table_to_html(decision.results, color_score=True, percent=True)
-    metrics_table = _table_to_html(decision.weights, color_score=True, percent=True)
+    weights_table = _table_to_html(decision.weights, color_score=True, percent=True)
     metric_charts = (
         [
             _metrics_allotment_pie_chart_to_html(decision, metric, assets_dir)
             for metric in decision.metrics()
         ],
     )
-    factor_descriptions = [
-        html_from_doc(decision.factor_docs[factor]) for factor in decision.factors()
-    ]
-    factor_scorings = [html_from_doc(decision.scorer_docs[factor]) for factor in decision.factors()]
-    # a factor is ignored if all values in its column in the weights table are 0
-    ignored_factors = [
-        factor for factor in decision.factors() if np.all(decision.weights[factor] == 0.0)
-    ]
+    # factor_descriptions = [
+    #     html_from_doc(decision.factor_docs[factor]) for factor in decision.factors()
+    # ]
+    # factor_scorings = [html_from_doc(decision.scorer_docs[factor]) for factor in decision.factors()]
+    # # a factor is ignored if all values in its column in the weights table are 0
+    # ignored_factors = [
+    #     factor for factor in decision.factors() if np.all(decision.weights[factor] == 0.0)
+    # ]
 
     # dump the html blobs into a template
     html = fill_template(
         "index",
         raw_table=raw_table,
-        scores_table=scores_table,
+        scores_tables=scores_tables,
         results_table=results_table,
-        metrics_table=metrics_table,
+        weights_table=weights_table,
         metrics=decision.metrics(),
         metric_charts=metric_charts,
         factors=decision.factors(),
-        factor_descriptions=factor_descriptions,
-        factor_scorings=factor_scorings,
-        ignored_factors=ignored_factors,
+        # factor_descriptions=factor_descriptions,
+        # factor_scorings=factor_scorings,
+        # ignored_factors=ignored_factors,
     )
     html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()
