@@ -60,6 +60,11 @@ class Star:
         self.max = max
         self.range = max - min
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Star):
+            return False
+        return self.min == other.min and self.max == other.max
+
     def __call__(self, col: pd.Series) -> pd.Series:
         """
         Parameters
@@ -128,6 +133,11 @@ class Bucket:
             self.max = max
             self.val = val
 
+        def __eq__(self, other: Any) -> bool:
+            if not isinstance(other, Bucket.Pail):
+                return False
+            return self.min == other.min and self.max == other.max and self.val == other.val
+
     def __init__(self, buckets: List[Dict[str, float]]):
         """
         Parameters
@@ -157,6 +167,11 @@ class Bucket:
                     [type(pail.min) for pail in self.pails]
                 )
             )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Bucket):
+            return False
+        return self.pails == other.pails
 
     def __call__(self, col: pd.Series) -> pd.Series:
         """
@@ -219,6 +234,11 @@ class Relative:
 
     def __init__(self, invert: bool):
         self.invert = invert
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Relative):
+            return False
+        return self.invert == other.invert
 
     def __call__(self, col: pd.Series) -> pd.Series:
         """
@@ -284,6 +304,11 @@ class Interpolate:
             raise ValueError("all outputs must be between 0 and 1")
         # create a function to interpolate between the knots
         self.spline = lambda x: np.interp(x, self.knots["in"], self.knots["out"])
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Interpolate):
+            return False
+        return self.knots.equals(other.knots)
 
     def __call__(self, col: pd.Series) -> np.ndarray:
         """

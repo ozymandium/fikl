@@ -89,6 +89,15 @@ class TestStar(unittest.TestCase):
             self.scorer(pd.Series([1, 2, 3, 4, 5])).tolist(), [0.0, 0.25, 0.50, 0.75, 1.0]
         )
 
+    def test_eq(self) -> None:
+        """
+        Test that the __eq__ method works as expected
+        """
+        self.assertEqual(Star(min=1, max=5), Star(min=1, max=5))
+        self.assertNotEqual(Star(min=1, max=5), Star(min=1, max=4))
+        self.assertNotEqual(Star(min=1, max=5), Star(min=2, max=5))
+        self.assertNotEqual(Star(min=1, max=5), Star(min=2, max=4))
+
 
 class TestBucket(unittest.TestCase):
     """
@@ -116,6 +125,51 @@ class TestBucket(unittest.TestCase):
         self.assertEqual(
             self.scorer(pd.Series([0.0, 1.0, 2.0, 3.0, 4.0])).tolist(),
             np.array([0.2, 0.4, 0.6, 0.8, 1.0]).tolist(),
+        )
+
+    def test_eq(self):
+        """
+        Test that the __eq__ method works as expected
+        """
+        self.assertEqual(
+            Bucket(
+                [
+                    {"min": 0.0, "max": 1.0, "val": 0.2},
+                    {"min": 1.0, "max": 2.0, "val": 0.4},
+                    {"min": 2.0, "max": 3.0, "val": 0.6},
+                    {"min": 3.0, "max": 4.0, "val": 0.8},
+                    {"min": 4.0, "max": 5.0, "val": 1.0},
+                ]
+            ),
+            Bucket(
+                [
+                    {"min": 0.0, "max": 1.0, "val": 0.2},
+                    {"min": 1.0, "max": 2.0, "val": 0.4},
+                    {"min": 2.0, "max": 3.0, "val": 0.6},
+                    {"min": 3.0, "max": 4.0, "val": 0.8},
+                    {"min": 4.0, "max": 5.0, "val": 1.0},
+                ]
+            ),
+        )
+        self.assertNotEqual(
+            Bucket(
+                [
+                    {"min": 0.0, "max": 1.0, "val": 0.2},
+                    {"min": 1.0, "max": 2.0, "val": 0.4},
+                    {"min": 2.0, "max": 3.0, "val": 0.6},
+                    {"min": 3.0, "max": 4.0, "val": 0.8},
+                    {"min": 4.0, "max": 5.0, "val": 1.0},
+                ]
+            ),
+            Bucket(
+                [
+                    {"min": 0.0, "max": 1.0, "val": 0.2},
+                    {"min": 1.0, "max": 2.0, "val": 0.4},
+                    {"min": 2.0, "max": 3.0, "val": 0.6},
+                    {"min": 3.0, "max": 4.0, "val": 0.8},
+                    {"min": 4.0, "max": 5.0, "val": 0.9},
+                ]
+            ),
         )
 
 
@@ -160,6 +214,13 @@ class TestRelative(unittest.TestCase):
         with self.assertRaises(TypeError):
             scorer(1)  # type: ignore
 
+    def test_eq(self) -> None:
+        """
+        Test that the __eq__ method works as expected
+        """
+        self.assertEqual(Relative(invert=False), Relative(invert=False))
+        self.assertNotEqual(Relative(invert=False), Relative(invert=True))
+
 
 class TestInterpolate(unittest.TestCase):
     """
@@ -184,6 +245,58 @@ class TestInterpolate(unittest.TestCase):
             np.array([0.0, 0.5, 1.0, 0.5, 0.0]).tolist(),
         )
 
+    def test_eq(self) -> None:
+        """
+        Test that the __eq__ method works as expected
+        """
+        self.assertEqual(
+            Interpolate(
+                knots=[
+                    {"in": -1.0, "out": 0.0},
+                    {"in": 0.0, "out": 1.0},
+                    {"in": 1.0, "out": 0.0},
+                ]
+            ),
+            Interpolate(
+                knots=[
+                    {"in": -1.0, "out": 0.0},
+                    {"in": 0.0, "out": 1.0},
+                    {"in": 1.0, "out": 0.0},
+                ]
+            ),
+        )
+        self.assertNotEqual(
+            Interpolate(
+                knots=[
+                    {"in": -1.0, "out": 0.0},
+                    {"in": 0.0, "out": 1.0},
+                    {"in": 1.0, "out": 0.0},
+                ]
+            ),
+            Interpolate(
+                knots=[
+                    {"in": -1.0, "out": 0.0},
+                    {"in": 0.0, "out": 1.0},
+                    {"in": 1.0, "out": 1.0},
+                ]
+            ),
+        )
+        self.assertNotEqual(
+            Interpolate(
+                knots=[
+                    {"in": -1.0, "out": 0.0},
+                    {"in": 0.0, "out": 1.0},
+                    {"in": 1.0, "out": 0.0},
+                ]
+            ),
+            Interpolate(
+                knots=[
+                    {"in": -1.0, "out": 0.0},
+                    {"in": 0.0, "out": 1.0},
+                ]
+            ),
+        )
+
 
 class TestRange(unittest.TestCase):
     """
@@ -202,3 +315,10 @@ class TestRange(unittest.TestCase):
             Range(worst=100.0, best=0.0)(pd.Series([0.0, 25.0, 50.0, 75.0, 100.0])).tolist(),
             np.array([1.0, 0.75, 0.50, 0.25, 0.0]).tolist(),
         )
+
+    def test_eq(self) -> None:
+        """
+        Test that the __eq__ method works as expected
+        """
+        self.assertEqual(Range(worst=0.0, best=100.0), Range(worst=0.0, best=100.0))
+        self.assertNotEqual(Range(worst=0.0, best=100.0), Range(worst=100.0, best=0.0))
