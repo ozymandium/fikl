@@ -65,22 +65,22 @@ factor_scorings : list[str]
             {% endif %} #}
         </p>
             
-        {# <h1>Metrics</h1>
+        <h1>Metrics</h1>
         <div>
             <div class="table-container">
                 {{weights_table}}
             </div>
-            <div>
+            {# <div>
                 {% for idx in range(metrics|length) %}
                     <div>
                         <h2>{{metrics[idx]}}</h2>
                         <div>{{metric_charts[idx]}}</div>
                     </div>
                 {% endfor %}
-            </div>
+            </div> #}
         </div>
 
-        <h1>Factors</h1>
+        {# <h1>Factors</h1>
         <div>
             {% for idx in range(factors|length) %}
                 <h2>{{factors[idx]}}</h2>

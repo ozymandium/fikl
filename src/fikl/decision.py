@@ -103,8 +103,6 @@ class Decision:
         """
         logger = logging.getLogger()
 
-        raw = pd.read_csv(raw_path, index_col="choice")
-
         # read the ranking matrix from the csv as a dataframe
         # the index is the choice name, the columns are the factors
         raw = pd.read_csv(raw_path, index_col="choice")
@@ -114,7 +112,7 @@ class Decision:
         # value: list of factor names
         factors = {metric: list(config["metrics"][metric].keys()) for metric in config["metrics"]}
         logger.debug("factors: {}".format(pprint.pformat(factors)))
-        all_factors = [factor for metric in factors for factor in factors[metric]]
+        all_factors = set([factor for metric in factors for factor in factors[metric]])
         logger.debug("all_factors: {}".format(pprint.pformat(all_factors)))
 
         # any factor that is not a column in the raw data already will need to be fetched

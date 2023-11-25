@@ -134,8 +134,10 @@ def add_toc(html):
     # give the toc an id so that we can style it
     toc.h1["id"] = "toc_h1"  # type: ignore
     toc_list = soup.new_tag("ul")
-    # limit the height of the toc list to half the screen and make it scrollable
-    toc_list["style"] = "height: 50vh; overflow-y: scroll;"
+    # limit the height of the toc list to half the screen or shorter and make it scrollable, but if it's too
+    # short, then don't make it scrollable. 
+    # toc_list["style"] = "height: 50vh; overflow-y: scroll;"
+    toc_list["style"] = "overflow-y: scroll; max-height: 50vh;"
     toc.append(toc_list)
     # add the toc to the soup
     soup.body.insert(0, toc)  # type: ignore
