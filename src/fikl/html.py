@@ -12,6 +12,7 @@ import uuid
 from collections import OrderedDict
 from typing import Any, Optional
 from inspect import cleandoc
+import tempfile
 
 import numpy as np
 import pandas as pd
@@ -259,7 +260,7 @@ def _metrics_allotment_pie_chart_to_html(decision: Decision, metric: str, assets
     return html
 
 
-def report(decision: Decision, path: str) -> None:
+def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     """
     Generate an html report for a decision.
 
@@ -267,12 +268,21 @@ def report(decision: Decision, path: str) -> None:
     ----------
     decision : Decision
         Decision to generate the report for
-    path : str
-        File path where html should be written
+    path : str, optional
+        Path to write the html to. If None, then the html will be returned as a string.
+
+    Returns
+    -------
+    Optional[str]
+        If path is None, then the html as a string. Otherwise, None.
     """
     # folder to stick html assets should have the same name as the html file, but with _assets
-    assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
-    os.makedirs(assets_dir, exist_ok=True)
+    # if path is None, then just use a temp folder
+    if path is None:
+        assets_dir = tempfile.mkdtemp()
+    else:
+        assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
+        os.makedirs(assets_dir, exist_ok=True)
 
     raw_table = _table_to_html(decision.raw)
     scores_table = _table_to_html(decision.scores, color_score=True, percent=True)
@@ -310,5 +320,9 @@ def report(decision: Decision, path: str) -> None:
     html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()
 
-    with open(path, "w") as f:
-        f.write(html)
+    if path is None:
+        return html
+    else:
+        with open(path, "w") as f:
+            f.write(html)
+        return None

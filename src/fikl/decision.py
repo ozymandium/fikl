@@ -300,12 +300,19 @@ class Decision:
         self.results = self._get_results(self.scores, self.weights)
         logger.debug("Results:\n{}".format(pprint.pformat(self.results)))
 
-        # # store docs for each factor and scorer
-        # self.factor_docs = {
-        #     factor: config["factors"][factor]["doc"] if "doc" in config["factors"][factor] else "\n"
-        #     for factor in config["factors"]
-        # }
-        # self.scorer_docs = {factor: scorers[factor].doc() for factor in scorers}
+        # store docs for each factor and scorer
+        self.factor_docs = {
+            metric: {
+                factor: config["metrics"][metric][factor]["doc"]
+                if "doc" in config["metrics"][metric][factor]
+                else "\n"
+                for factor in config["metrics"][metric]
+            }
+        }
+        self.scorer_docs = {
+            metric: {factor: scorers[metric][factor].doc() for factor in scorers[metric]}
+            for metric in scorers
+        }
 
     def choices(self) -> list[str]:
         """
