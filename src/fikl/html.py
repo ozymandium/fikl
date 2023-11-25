@@ -285,10 +285,19 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         os.makedirs(assets_dir, exist_ok=True)
 
     raw_table = _table_to_html(decision.raw)
-    scores_tables = {
-        metric: _table_to_html(decision.scores[metric], color_score=True, percent=True)
-        for metric in decision.metrics()
-    }
+
+    # scores dataframes include columns for factors that are ignored, so remove those
+    scores_tables = {}
+    for metric in decision.metrics():
+        df = decision.scores[metric].copy()
+        # a factor is ignored for this metric if the value for this metric row and this factor
+        # column in the weights table is 0
+        ignored_factors = [
+            factor for factor in decision.factors() if decision.weights.loc[metric, factor] == 0.0
+        ]
+        df = df.drop(columns=ignored_factors)
+        scores_tables[metric] = _table_to_html(df, color_score=True, percent=True)
+
     results_table = _table_to_html(decision.results, color_score=True, percent=True)
     weights_table = _table_to_html(decision.weights, color_score=True, percent=True)
     metric_charts = (
