@@ -350,4 +350,7 @@ class Decision:
             key: metric name
             value: list of factor names
         """
-        return {metric: list(self.weights.columns[self.weights.loc[metric] > 0]) for metric in self.metrics()}
+        return {
+            metric: list(self.weights.columns[self.weights.loc[metric] > 0])
+            for metric in self.metrics()
+        }

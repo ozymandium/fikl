@@ -51,7 +51,7 @@ factor_scorings : list[str]
             {{results_table}}
         </div>
         <p>
-            {# {% if ignored_factors|length > 0 %}
+            {% if ignored_factors|length > 0 %}
                 The following factors are not included in any metric:
                 <ol>
                 {% for ignored_factor in ignored_factors %}
@@ -59,8 +59,8 @@ factor_scorings : list[str]
                 {% endfor %}
                 </ol>
             {% else %}
-                All factors are included in at least one metric!
-            {% endif %} #}
+                <b>Ignored Factors</b>: all factors are included in at least one metric!
+            {% endif %}
         </p>
             
         <h1>Metrics</h1>

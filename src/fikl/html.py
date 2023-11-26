@@ -135,7 +135,7 @@ def add_toc(html):
     toc.h1["id"] = "toc_h1"  # type: ignore
     toc_list = soup.new_tag("ul")
     # limit the height of the toc list to half the screen or shorter and make it scrollable, but if it's too
-    # short, then don't make it scrollable. 
+    # short, then don't make it scrollable.
     toc_list["style"] = "overflow-y: scroll; max-height: 50vh;"
     toc.append(toc_list)
     # add the toc to the soup
@@ -312,7 +312,6 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         }
         for metric in decision.factor_docs
     }
-    # factor_scorings = [html_from_doc(decision.scorer_docs[factor]) for factor in decision.factors()]
     factor_scorings = {
         metric: {
             factor: html_from_doc(decision.scorer_docs[metric][factor])
@@ -321,9 +320,9 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         for metric in decision.scorer_docs
     }
     # a factor is ignored if all values in its column in the weights table are 0
-    # ignored_factors = [
-    #     factor for factor in decision.factors() if np.all(decision.weights[factor] == 0.0)
-    # ]
+    ignored_factors = [
+        factor for factor in decision.factors() if all(decision.weights[factor] == 0.0)
+    ]
 
     # dump the html blobs into a template
     html = fill_template(
@@ -336,7 +335,7 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         factor_descriptions=factor_descriptions,
         factor_scorings=factor_scorings,
         metric_factors=decision.metric_factors(),
-        # ignored_factors=ignored_factors,
+        ignored_factors=ignored_factors,
     )
     html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()
