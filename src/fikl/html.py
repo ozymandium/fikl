@@ -214,11 +214,11 @@ def _table_to_html(table: pd.DataFrame, color_score: bool = False, percent: bool
     return styler.to_html()
 
 
-def _metrics_allotment_pie_chart_to_html(decision: Decision, metric: str, assets_dir: str) -> str:
+def _metrics_allotment_chart_to_html(decision: Decision, metric: str, assets_dir: str) -> str:
     """
-    use matplotlib.pyplot.pie to generate a pie chart for a row in decision.weights to show the
+    use matplotlib to generate a chart for a row in decision.weights to show the
     relative weights of each factor for a given metric. remove all columns that have a weight of
-    0. save the pie chart as a png and create an html img tag to display it.
+    0. save the chart as a png and create an html img tag to display it.
 
     Parameters
     ----------
@@ -238,15 +238,22 @@ def _metrics_allotment_pie_chart_to_html(decision: Decision, metric: str, assets
     weights = weights[weights != 0.0]
     # get the labels for the pie chart
     labels = weights.index
-    # get the values for the pie chart
-    values = weights.values
-    # get the colors for the pie chart
-    colors = sns.color_palette("deep", len(labels))
+    # get the values for the pie chart as percentages
+    values = 100 * weights.values
+    # # get the colors for the pie chart
+    # colors = sns.color_palette("deep", len(labels))
 
-    # generate the pie chart
+    # generate the horizontal chart
     fig, ax = plt.subplots()
-    ax.pie(values, labels=labels, colors=colors, autopct="%1.1f%%", startangle=90)
-    ax.axis("equal")
+    ax.barh(labels, values)
+    # disable x axis
+    ax.xaxis.set_visible(False)
+    # show the values of each bar as a right hand y axis label. each label should be outside of the
+    # chart area. format as a percentage.
+    ax.twinx().set_yticklabels([f"{v:.0f}%" for v in values], ha="left")
+        
+    # tight fit to make sure the labels aren't cut off
+    fig.tight_layout()
 
     # save to png
     png_abs_path = os.path.join(assets_dir, f"{metric}.png")
@@ -255,8 +262,9 @@ def _metrics_allotment_pie_chart_to_html(decision: Decision, metric: str, assets
     # convert to html
     # want it to be relative to the html file, so use a relative path
     png_rel_path = os.path.relpath(png_abs_path, os.path.dirname(assets_dir))
-    # take up 50% of screen
-    html = f"""<img src="{png_rel_path}" alt="{metric}" width="50%"/>"""
+    # take up at most 100% of the width of the page, and at most 50% of the height. scale the image
+    # to fit within those bounds.
+    html = f"""<img src="{png_rel_path}" alt="{metric}" style="max-width: 100%; max-height: 50%; object-fit: contain;"/>"""
 
     return html
 
@@ -302,7 +310,7 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     results_table = _table_to_html(decision.results, color_score=True, percent=True)
     weights_table = _table_to_html(decision.weights, color_score=True, percent=True)
     weight_charts = {
-        metric: _metrics_allotment_pie_chart_to_html(decision, metric, assets_dir)
+        metric: _metrics_allotment_chart_to_html(decision, metric, assets_dir)
         for metric in decision.metrics()
     }
     factor_descriptions = {
