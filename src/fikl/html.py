@@ -214,11 +214,12 @@ def _table_to_html(table: pd.DataFrame, color_score: bool = False, percent: bool
     return styler.to_html()
 
 
-def _metrics_allotment_chart_to_html(decision: Decision, metric: str, assets_dir: str) -> str:
+def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: str) -> str:
     """
     use matplotlib to generate a chart for a row in decision.weights to show the
     relative weights of each factor for a given metric. remove all columns that have a weight of
-    0. save the chart as a png and create an html img tag to display it.
+    0. save the chart as a png in the assets_dir. return the relative path to the png file within
+    the assets_dir.
 
     Parameters
     ----------
@@ -230,7 +231,7 @@ def _metrics_allotment_chart_to_html(decision: Decision, metric: str, assets_dir
     Returns
     -------
     str
-        html as a string.
+        relative path to the png file
     """
     # get the weights for the given metric
     weights = decision.weights.loc[metric]
@@ -250,7 +251,12 @@ def _metrics_allotment_chart_to_html(decision: Decision, metric: str, assets_dir
     ax.xaxis.set_visible(False)
     # show the values of each bar as a right hand y axis label. each label should be outside of the
     # chart area. format as a percentage.
-    ax.twinx().set_yticklabels([f"{v:.0f}%" for v in values], ha="left")
+    right_yax = ax.twinx()
+    right_yax.set_yticklabels([f"{v:.0f}%" for v in values], ha="left")
+    # set ytick locations to be the same as the bar locations
+    right_yax.set_yticks(ax.get_yticks())
+    # set the limits of the right y axis to be the same as the left y axis
+    right_yax.set_ylim(ax.get_ylim())
         
     # tight fit to make sure the labels aren't cut off
     fig.tight_layout()
@@ -262,11 +268,8 @@ def _metrics_allotment_chart_to_html(decision: Decision, metric: str, assets_dir
     # convert to html
     # want it to be relative to the html file, so use a relative path
     png_rel_path = os.path.relpath(png_abs_path, os.path.dirname(assets_dir))
-    # take up at most 100% of the width of the page, and at most 50% of the height. scale the image
-    # to fit within those bounds.
-    html = f"""<img src="{png_rel_path}" alt="{metric}" style="max-width: 100%; max-height: 50%; object-fit: contain;"/>"""
 
-    return html
+    return png_rel_path
 
 
 def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
@@ -310,7 +313,7 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     results_table = _table_to_html(decision.results, color_score=True, percent=True)
     weights_table = _table_to_html(decision.weights, color_score=True, percent=True)
     weight_charts = {
-        metric: _metrics_allotment_chart_to_html(decision, metric, assets_dir)
+        metric: _metrics_weight_chart_to_png(decision, metric, assets_dir)
         for metric in decision.metrics()
     }
     factor_descriptions = {
