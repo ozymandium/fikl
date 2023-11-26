@@ -136,7 +136,6 @@ def add_toc(html):
     toc_list = soup.new_tag("ul")
     # limit the height of the toc list to half the screen or shorter and make it scrollable, but if it's too
     # short, then don't make it scrollable. 
-    # toc_list["style"] = "height: 50vh; overflow-y: scroll;"
     toc_list["style"] = "overflow-y: scroll; max-height: 50vh;"
     toc.append(toc_list)
     # add the toc to the soup
@@ -302,17 +301,26 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
 
     results_table = _table_to_html(decision.results, color_score=True, percent=True)
     weights_table = _table_to_html(decision.weights, color_score=True, percent=True)
-    metric_charts = (
-        [
-            _metrics_allotment_pie_chart_to_html(decision, metric, assets_dir)
-            for metric in decision.metrics()
-        ],
-    )
-    # factor_descriptions = [
-    #     html_from_doc(decision.factor_docs[factor]) for factor in decision.factors()
-    # ]
+    weight_charts = {
+        metric: _metrics_allotment_pie_chart_to_html(decision, metric, assets_dir)
+        for metric in decision.metrics()
+    }
+    factor_descriptions = {
+        metric: {
+            factor: html_from_doc(decision.factor_docs[metric][factor])
+            for factor in decision.factor_docs[metric]
+        }
+        for metric in decision.factor_docs
+    }
     # factor_scorings = [html_from_doc(decision.scorer_docs[factor]) for factor in decision.factors()]
-    # # a factor is ignored if all values in its column in the weights table are 0
+    factor_scorings = {
+        metric: {
+            factor: html_from_doc(decision.scorer_docs[metric][factor])
+            for factor in decision.scorer_docs[metric]
+        }
+        for metric in decision.scorer_docs
+    }
+    # a factor is ignored if all values in its column in the weights table are 0
     # ignored_factors = [
     #     factor for factor in decision.factors() if np.all(decision.weights[factor] == 0.0)
     # ]
@@ -324,11 +332,10 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         scores_tables=scores_tables,
         results_table=results_table,
         weights_table=weights_table,
-        metrics=decision.metrics(),
-        metric_charts=metric_charts,
-        factors=decision.factors(),
-        # factor_descriptions=factor_descriptions,
-        # factor_scorings=factor_scorings,
+        weight_charts=weight_charts,
+        factor_descriptions=factor_descriptions,
+        factor_scorings=factor_scorings,
+        metric_factors=decision.metric_factors(),
         # ignored_factors=ignored_factors,
     )
     html = add_toc(html)

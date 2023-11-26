@@ -306,6 +306,7 @@ class Decision:
                 else "\n"
                 for factor in config["metrics"][metric]
             }
+            for metric in config["metrics"]
         }
         self.scorer_docs = {
             metric: {factor: scorers[metric][factor].doc() for factor in scorers[metric]}
@@ -338,3 +339,15 @@ class Decision:
             list of factor names
         """
         return list(self.weights.columns)
+
+    def metric_factors(self) -> dict[str, list[str]]:
+        """
+        Get a list of factors for each metric whose weights are non-zero
+        Returns
+        -------
+        dict[str, list[str]]
+            dict of factors for each metric
+            key: metric name
+            value: list of factor names
+        """
+        return {metric: list(self.weights.columns[self.weights.loc[metric] > 0]) for metric in self.metrics()}

@@ -149,7 +149,7 @@ class TestAddToc(unittest.TestCase):
             Table of Contents
             </a>
         </h1>
-        <ul style="height: 50vh; overflow-y: scroll;">
+        <ul style="overflow-y: scroll; max-height: 50vh;">
             <li>
             <a href="#heading-1">
             Heading 1

@@ -166,3 +166,4 @@ class TestDecision(unittest.TestCase):
         self.assertEqual(decision.choices(), ["one", "two", "three", "four", "five"])
         self.assertEqual(decision.metrics(), ["smart", "fun"])
         self.assertEqual(decision.factors(), ["cost", "size", "looks", "economy", "power"])
+        self.assertEqual(decision.metric_factors(), {"smart": ["cost", "size", "economy"], "fun": ["looks", "power"]})
