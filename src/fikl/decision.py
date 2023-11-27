@@ -138,6 +138,9 @@ class Decision:
                     )
                     raw[factor] = raw[factor].astype(dtype)
 
+        # now that the table is complete, sort the columns alphabetically
+        raw = raw.reindex(sorted(raw.columns), axis=1)
+
         return raw
 
     @staticmethod
