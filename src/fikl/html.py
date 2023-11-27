@@ -216,7 +216,7 @@ def _table_to_html(table: pd.DataFrame, color_score: bool = False, percent: bool
 
 def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: str) -> str:
     """
-    use matplotlib to generate a chart for a row in decision.weights to show the
+    use matplotlib to generate a chart for a row in decision.metric_weights to show the
     relative weights of each factor for a given metric. remove all columns that have a weight of
     0. save the chart as a png in the assets_dir. return the relative path to the png file within
     the assets_dir.
@@ -234,7 +234,7 @@ def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: st
         relative path to the png file
     """
     # get the weights for the given metric
-    weights = decision.weights.loc[metric]
+    weights = decision.metric_weights.loc[metric]
     # remove all columns that have a weight of 0
     weights = weights[weights != 0.0]
     # get the labels for the pie chart
@@ -257,7 +257,7 @@ def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: st
     right_yax.set_yticks(ax.get_yticks())
     # set the limits of the right y axis to be the same as the left y axis
     right_yax.set_ylim(ax.get_ylim())
-        
+
     # tight fit to make sure the labels aren't cut off
     fig.tight_layout()
 
@@ -305,13 +305,15 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         # a factor is ignored for this metric if the value for this metric row and this factor
         # column in the weights table is 0
         ignored_factors = [
-            factor for factor in decision.factors() if decision.weights.loc[metric, factor] == 0.0
+            factor
+            for factor in decision.all_factors()
+            if decision.metric_weights.loc[metric, factor] == 0.0
         ]
         df = df.drop(columns=ignored_factors)
         scores_tables[metric] = _table_to_html(df, color_score=True, percent=True)
 
-    results_table = _table_to_html(decision.results, color_score=True, percent=True)
-    weights_table = _table_to_html(decision.weights, color_score=True, percent=True)
+    results_table = _table_to_html(decision.metric_results, color_score=True, percent=True)
+    weights_table = _table_to_html(decision.metric_weights, color_score=True, percent=True)
     weight_charts = {
         metric: _metrics_weight_chart_to_png(decision, metric, assets_dir)
         for metric in decision.metrics()
@@ -332,7 +334,7 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     }
     # a factor is ignored if all values in its column in the weights table are 0
     ignored_factors = [
-        factor for factor in decision.factors() if all(decision.weights[factor] == 0.0)
+        factor for factor in decision.all_factors() if all(decision.metric_weights[factor] == 0.0)
     ]
 
     # dump the html blobs into a template

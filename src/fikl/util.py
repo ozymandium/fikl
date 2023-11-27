@@ -5,6 +5,8 @@ from collections import OrderedDict
 import logging
 import os
 from typing import Any, Type
+import yaml
+import json
 
 import jinja2
 import numpy as np
@@ -131,3 +133,21 @@ def build_ordered_depth_first_tree(items: list[Any], levels: list[int]) -> Order
         nodes[i] = parent_node[item]
 
     return tree
+
+
+def load_yaml(stream):
+    """
+    Load YAML from a stream, fully expanding aliases. This is a hack.
+
+    Parameters
+    ----------
+    stream : str or file-like
+        The YAML to load
+
+    Returns
+    -------
+    dict
+        The loaded YAML data
+    """
+    data = yaml.load(stream, Loader=yaml.FullLoader)
+    return json.loads(json.dumps(data))

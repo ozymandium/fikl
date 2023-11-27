@@ -17,7 +17,7 @@ class TestObesityFetcher(unittest.TestCase):
         """
         Setup for unit tests
         """
-        self.fetcher = FETCHER_LOOKUP["obesity"]()
+        self.fetcher = FETCHER_LOOKUP["Obesity"]()
 
     def test_fetch(self) -> None:
         """

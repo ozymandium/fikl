@@ -53,25 +53,9 @@ metrics:
         actors: 
             scoring: *actors_scoring
             weight: 1.0
-    all:
-        rotten tomatoes: 
-            scoring: *rotten_tomatoes_scoring
-            weight: 1.0
-        actors: 
-            scoring: *actors_scoring
-            weight: 1.0
-        lighthearted: 
+        lighthearted:
             scoring: *lighthearted_scoring
             weight: 1.0
-        henry: 
-            scoring: *henry_scoring
-            weight: 0.5
-        jane: 
-            scoring: *jane_scoring
-            weight: 0.5
-        john: 
-            scoring: *john_scoring
-            weight: 0.5
-        sam: 
-            scoring: *sam_scoring
-            weight: 0.5
+final: 
+    personal: 0.5
+    critical: 0.5

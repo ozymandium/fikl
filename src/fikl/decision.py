@@ -1,11 +1,12 @@
 from fikl.scorers import LOOKUP as SCORER_LOOKUP
 from fikl.fetchers import LOOKUP as FETCHER_LOOKUP
+from fikl.util import load_yaml
 
 from typing import Optional, Any, Dict, List
 import logging
-import yaml
 import pprint
 import os
+import yaml
 
 import pandas as pd
 import numpy as np
@@ -121,7 +122,7 @@ class Decision:
         }
         logger.debug("fetchers: {}".format(pprint.pformat(fetchers)))
         for factor, fetcher in fetchers.items():
-            raw[factor] = fetcher.fetch(self.choices())
+            raw[factor] = fetcher.fetch(list(raw.index))
 
         # allow the user to input executable code in the csv. eval it here.
         raw = raw.map(lambda x: eval(x) if isinstance(x, str) else x)
@@ -184,9 +185,10 @@ class Decision:
         return scores
 
     @staticmethod
-    def _get_weights(config: dict, raw: pd.DataFrame) -> pd.DataFrame:
+    def _get_metric_weights(config: dict, raw: pd.DataFrame) -> pd.DataFrame:
         """
-        Generate the weights dataframe. The index is the metric name, the columns are the factors.
+        Generate the metric weights dataframe, which is necessary to compute results from the scores.
+        The index is the metric name, the columns are the factors.
         The values are the weights for that factor for that metric. If the column is not included
         in that metric, the value is np.nan
 
@@ -212,10 +214,50 @@ class Decision:
                 weights.loc[metric, factor] = config["metrics"][metric][factor]["weight"]
         # normalize the weights for each metric (along each row)
         weights = weights.div(weights.sum(axis=1), axis=0)
+        # sort the rows alphabetically
+        weights = weights.reindex(sorted(weights.index), axis=0)
         return weights
 
     @staticmethod
-    def _get_results(scores: dict[str, pd.DataFrame], weights: pd.DataFrame) -> pd.DataFrame:
+    def _get_final_weights(config: dict, metrics: set[str]) -> pd.Series:
+        """
+        Generate the final weights for each metric. The index is the metric name, the values are
+        floats between 0 and 1. This is used for computing the final results from the metric results.
+
+        Parameters
+        ----------
+        config : dict
+            dict of config values
+        metrics : set[str]
+            set of all metric names
+
+        Returns
+        -------
+        pd.Series
+            the final weights for each metric. the index is the metric name, the values are floats
+            between 0 and 1.
+        """
+        # ensure that all metrics are included in the final weights
+        if set(config["final"].keys()) != metrics:
+            raise ValueError(
+                "final weights do not include all metrics:\n"
+                f"weights: {set(config['final'].keys())}\n"
+                f"metrics: {metrics}"
+            )
+        weights = pd.Series(
+            data=[config["final"][metric] for metric in metrics],
+            index=list(metrics),
+        )
+        # normalize the weights
+        weights = weights.div(weights.sum())
+        # sort the rows alphabetically
+        weights = weights.reindex(sorted(weights.index))
+        return weights
+
+    @staticmethod
+    def _get_metric_results(
+        scores: dict[str, pd.DataFrame], metric_weights: pd.DataFrame
+    ) -> pd.DataFrame:
         """
         Generate the results dataframe. The index is the choice name, the columns are the metrics.
         The values are the results for that choice for that metric. If the column is not included
@@ -229,9 +271,9 @@ class Decision:
             value: dataframe with the the ranking matrix. the index is the choice name, the columns are
             the factors. values are floats between 0 and 1. for columns which are not included in that
             metric, the value is np.nan
-        weights : pd.DataFrame
-            the weights for each factor for each metric. the index is the metric name, the columns are
-            the factors. the "All" metric is automatically added which includes all factors
+        metric_weights : pd.DataFrame
+            the weights for each factor for each metric. the index is the metric name, the
+            columns are the factors.
 
         Returns
         -------
@@ -239,6 +281,15 @@ class Decision:
             the results table. the index is the choice name, the columns are the metrics. values are
             floats between 0 and 1.
         """
+        # check and make sure that the columns are shared between scores and weights
+        for metric in metric_weights.index:
+            if set(scores[metric].columns) != set(metric_weights.columns):
+                raise ValueError(
+                    "score columns {} do not match weight columns {}".format(
+                        set(scores[metric].columns), set(metric_weights.columns)
+                    )
+                )
+
         # ensure that all entries in scores have the same rows
         index = list(scores.values())[0].index
         for _, score in scores.items():
@@ -252,8 +303,38 @@ class Decision:
             index=index,
         )
         for metric, score in scores.items():
-            results[metric] = score.dot(weights.loc[metric])
+            results[metric] = score.dot(metric_weights.loc[metric])
         return results
+
+    @staticmethod
+    def _get_final_results(metric_results: pd.DataFrame, final_weights: pd.Series) -> pd.Series:
+        """
+        Generate the final results. The index is the choice name, the values are the final results
+        for that choice.
+
+        Parameters
+        ----------
+        metric_results: pd.DataFrame
+            the results table. the index is the choice name, the columns are the metrics. values are
+            floats between 0 and 1. this is the output of _get_results()
+        final_weights : pd.Series
+            the final weights for each metric. the index is the metric name, the values are floats
+            between 0 and 1. this is the output of _get_final_weights()
+
+        Returns
+        -------
+        pd.Series
+            the final results. the index is the choice name, the values are floats between 0 and 1.
+        """
+        # check and make sure that the columns are shared between results and final weights
+        if set(metric_results.columns) != set(final_weights.index):
+            raise ValueError(
+                "results columns {} do not match final weights columns {}".format(
+                    set(metric_results.columns), set(final_weights.index)
+                )
+            )
+
+        return metric_results.dot(final_weights)
 
     def __init__(self, config_path: str, raw_path: str):
         """
@@ -272,7 +353,8 @@ class Decision:
 
         # read the config yaml
         with open(config_path, "r") as f:
-            config = yaml.load(f, Loader=yaml.FullLoader)
+            config = load_yaml(f)
+        logger.debug("config:\n{}".format(yaml.dump(config)))
 
         scorers = self._get_scorers(config)
         logger.debug("scorers:\n{}".format(pprint.pformat(scorers)))
@@ -285,21 +367,18 @@ class Decision:
         for metric, scores in self.scores.items():
             logger.debug(f"{metric}:\n{scores}")
 
-        self.weights = self._get_weights(config, self.raw)
-        logger.debug("Weights:\n{}".format(pprint.pformat(self.weights)))
-
-        # check and make sure that the columns are shared between scores and weights
-        for metric in config["metrics"]:
-            if set(self.scores[metric].columns) != set(self.weights.columns):
-                raise ValueError(
-                    "score columns {} do not match weight columns {}".format(
-                        set(self.scores[metric].columns), set(self.weights.columns)
-                    )
-                )
+        self.metric_weights = self._get_metric_weights(config, self.raw)
+        logger.debug("Weights:\n{}".format(pprint.pformat(self.metric_weights)))
 
         # generate the results table
-        self.results = self._get_results(self.scores, self.weights)
-        logger.debug("Results:\n{}".format(pprint.pformat(self.results)))
+        self.metric_results = self._get_metric_results(self.scores, self.metric_weights)
+        logger.debug("Results:\n{}".format(pprint.pformat(self.metric_results)))
+
+        # generate the final weights
+        self.final_weights = self._get_final_weights(config, set(self.metrics()))
+
+        # generate the final results
+        self.final_results = self._get_final_results(self.metric_results, self.final_weights)
 
         # store docs for each factor and scorer
         self.factor_docs = {
@@ -332,20 +411,21 @@ class Decision:
         list[str]
             list of metric names
         """
-        return list(self.weights.index)
+        return list(self.metric_weights.index)
 
-    def factors(self) -> list[str]:
+    def all_factors(self) -> list[str]:
         """
         Returns
         -------
         list[str]
             list of factor names
         """
-        return list(self.weights.columns)
+        return list(self.metric_weights.columns)
 
     def metric_factors(self) -> dict[str, list[str]]:
         """
         Get a list of factors for each metric whose weights are non-zero
+
         Returns
         -------
         dict[str, list[str]]
@@ -354,6 +434,6 @@ class Decision:
             value: list of factor names
         """
         return {
-            metric: list(self.weights.columns[self.weights.loc[metric] > 0])
+            metric: list(self.metric_weights.columns[self.metric_weights.loc[metric] > 0])
             for metric in self.metrics()
         }

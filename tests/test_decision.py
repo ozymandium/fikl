@@ -67,6 +67,8 @@ class TestDecision(unittest.TestCase):
             ],
             columns=["choice", "cost", "size", "looks", "economy", "power"],
         )
+        # sort the columns in expected alphabetically
+        expected = expected.sort_index(axis=1)
         expected = expected.set_index("choice")
         assert_frame_equal(result, expected)
 
@@ -98,13 +100,16 @@ class TestDecision(unittest.TestCase):
                 columns=["choice", "cost", "size", "looks", "economy", "power"],
             ),
         }
+        # sort the columns in expected alphabetically
+        for key in expected.keys():
+            expected[key] = expected[key].sort_index(axis=1)
         expected["smart"] = expected["smart"].set_index("choice")
         expected["fun"] = expected["fun"].set_index("choice")
         self.assertEqual(result.keys(), expected.keys())
         for key in result.keys():
             assert_frame_equal(result[key], expected[key], check_exact=False)
 
-    def test_get_weights(self) -> None:
+    def test_get_metric_weights(self) -> None:
         with open(self.CONFIG, "r") as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
         raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
@@ -112,7 +117,7 @@ class TestDecision(unittest.TestCase):
             raw,
             Decision._get_scorers(config),
         )
-        result = Decision._get_weights(config, raw)
+        result = Decision._get_metric_weights(config, raw)
         expected = pd.DataFrame(
             data=[
                 [1.0 / 3.0, 1.0 / 3.0, 0.0, 1.0 / 3.0, 0.0],
@@ -121,9 +126,13 @@ class TestDecision(unittest.TestCase):
             columns=["cost", "size", "looks", "economy", "power"],
         )
         expected = expected.set_index(pd.Index(["smart", "fun"], dtype="object"))
+        # sort the columns in expected alphabetically
+        expected = expected.sort_index(axis=1)
+        # sort the rows in expected alphabetically
+        expected = expected.sort_index(axis=0)
         assert_frame_equal(result, expected)
 
-    def test_get_results(self) -> None:
+    def test_get_metric_results(self) -> None:
         with open(self.CONFIG, "r") as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
         raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
@@ -131,8 +140,8 @@ class TestDecision(unittest.TestCase):
             raw,
             Decision._get_scorers(config),
         )
-        weights = Decision._get_weights(config, raw)
-        result = Decision._get_results(scores, weights)
+        weights = Decision._get_metric_weights(config, raw)
+        result = Decision._get_metric_results(scores, weights)
         expected = pd.DataFrame(
             data=[
                 ["one", 0.4666666666666667, 0.05],
@@ -159,14 +168,16 @@ class TestDecision(unittest.TestCase):
             columns=["choice", "smart", "fun"],
         )
         expected = expected.set_index("choice")
-        assert_frame_equal(decision.results, expected)
+        assert_frame_equal(decision.metric_results, expected)
 
     def test_getters(self) -> None:
         decision = Decision(config_path=self.CONFIG, raw_path=self.RAW)
         self.assertEqual(decision.choices(), ["one", "two", "three", "four", "five"])
-        self.assertEqual(decision.metrics(), ["smart", "fun"])
-        self.assertEqual(decision.factors(), ["cost", "size", "looks", "economy", "power"])
+        self.assertEqual(decision.metrics(), sorted(["smart", "fun"]))
+        self.assertEqual(
+            decision.all_factors(), sorted(["cost", "size", "looks", "economy", "power"])
+        )
         self.assertEqual(
             decision.metric_factors(),
-            {"smart": ["cost", "size", "economy"], "fun": ["looks", "power"]},
+            {"smart": sorted(["cost", "size", "economy"]), "fun": sorted(["looks", "power"])},
         )

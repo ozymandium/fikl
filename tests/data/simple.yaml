@@ -46,3 +46,6 @@ metrics:
         power:
             scoring: *power_scoring
             weight: 1.0
+final:
+    smart: 0.67
+    fun: 0.33

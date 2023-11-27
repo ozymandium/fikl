@@ -24,7 +24,7 @@ class ObesityFetcher:
     https://data.cdc.gov/500-Cities-Places/500-Cities-Obesity-among-adults-aged-18-years/bjvu-3y7d/data
     """
 
-    CODE = "obesity"
+    CODE = "Obesity"
     SOURCE_FILE = os.path.join(
         os.path.dirname(__file__), "data", "500_Cities__Obesity_among_adults_aged___18_years.csv"
     )
