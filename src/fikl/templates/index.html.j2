@@ -87,5 +87,16 @@ factor_scorings : list[str]
         {% endfor %}
         </div>
 
+        <h1>Final Decision</h1>
+        <p>
+            The final selection is <b>{{answer}}</b>
+        </p>
+        The rankings are:
+        <div class="table-container">
+            {{final_results_table}}
+        </div>
+        This was chosen from the metrics using the following weights:
+        <div class="table-container">
+            {{final_weights_table}}
     </body>
 </html>

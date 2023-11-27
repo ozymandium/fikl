@@ -10,7 +10,7 @@ import bs4
 import re
 import uuid
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from inspect import cleandoc
 import tempfile
 
@@ -154,7 +154,9 @@ def add_toc(html):
     return str(soup)
 
 
-def _table_to_html(table: pd.DataFrame, color_score: bool = False, percent: bool = False) -> str:
+def _table_to_html(
+    obj: Union[pd.Series, pd.DataFrame], color_score: bool = False, percent: bool = False
+) -> str:
     """
     Convert a DataFrame to html. apply a background gradient to the whole table based on the
     score range.
@@ -166,7 +168,7 @@ def _table_to_html(table: pd.DataFrame, color_score: bool = False, percent: bool
 
     Parameters
     ----------
-    table : pd.DataFrame
+    table : either a pd.Series or a pd.DataFrame
         DataFrame to convert to html
     color_score : bool
         Whether to apply a background gradient to the whole table based on the value. the score
@@ -180,6 +182,16 @@ def _table_to_html(table: pd.DataFrame, color_score: bool = False, percent: bool
     str
         html as a string.
     """
+    # if the object is a Series, need to make it a DataFrame with one column
+    if isinstance(obj, pd.Series):
+        table = pd.DataFrame(obj)
+        # don't give the column a name
+        table.columns = [""]
+        # don't give the index a name
+        table.index.name = None
+    else:
+        table = obj
+
     styler = table.style
 
     # apply a background gradient to the whole table based on the score range. it is possible to apply a background gradient to a subset of the columns, using `subset`
@@ -332,9 +344,16 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         }
         for metric in decision.scorer_docs
     }
-    # a factor is ignored if all values in its column in the weights table are 0
+    final_results_table = _table_to_html(decision.final_results, color_score=True, percent=True)
+    final_weights_table = _table_to_html(decision.final_weights, color_score=True, percent=True)
+
+    # a factor is ignored if all values in its column in the metric weights table are 0
     ignored_factors = [
         factor for factor in decision.all_factors() if all(decision.metric_weights[factor] == 0.0)
+    ]
+    # a metric is ignored if all values in its row in the final weights table are 0
+    ignored_metrics = [
+        metric for metric in decision.metrics() if decision.final_weights.loc[metric] == 0.0
     ]
 
     # dump the html blobs into a template
@@ -349,6 +368,10 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         factor_scorings=factor_scorings,
         metric_factors=decision.metric_factors(),
         ignored_factors=ignored_factors,
+        ignored_metrics=ignored_metrics,
+        answer=decision.answer,
+        final_results_table=final_results_table,
+        final_weights_table=final_weights_table,
     )
     html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()

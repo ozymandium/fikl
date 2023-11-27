@@ -125,6 +125,7 @@ class Decision:
             raw[factor] = fetcher.fetch(list(raw.index))
 
         # allow the user to input executable code in the csv. eval it here.
+        # FIXME: this is deeply unsafe. need to find a better way to do this.
         raw = raw.map(lambda x: eval(x) if isinstance(x, str) else x)
 
         # each scorer requires a certain dtype for the input. iterate over each factor/column and
@@ -310,7 +311,8 @@ class Decision:
     def _get_final_results(metric_results: pd.DataFrame, final_weights: pd.Series) -> pd.Series:
         """
         Generate the final results. The index is the choice name, the values are the final results
-        for that choice.
+        for that choice, and they are sorted in descending order so that the first choice is the
+        best choice.
 
         Parameters
         ----------
@@ -333,8 +335,10 @@ class Decision:
                     set(metric_results.columns), set(final_weights.index)
                 )
             )
-
-        return metric_results.dot(final_weights)
+        final_results = metric_results.dot(final_weights)
+        # sort by the final results
+        final_results = final_results.sort_values(ascending=False)
+        return final_results
 
     def __init__(self, config_path: str, raw_path: str):
         """
@@ -437,3 +441,12 @@ class Decision:
             metric: list(self.metric_weights.columns[self.metric_weights.loc[metric] > 0])
             for metric in self.metrics()
         }
+
+    def answer(self) -> str:
+        """
+        Returns
+        -------
+        str
+            the best choice
+        """
+        return self.final_results.index[0]

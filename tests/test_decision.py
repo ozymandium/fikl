@@ -155,6 +155,29 @@ class TestDecision(unittest.TestCase):
         expected = expected.set_index("choice")
         assert_frame_equal(result, expected)
 
+    def test_get_final_weights(self) -> None:
+        with open(self.CONFIG, "r") as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+        scorers = Decision._get_scorers(config)
+        raw = Decision._get_raw(config, self.RAW, scorers)
+        scores = Decision._get_scores(raw, scorers)
+        weights = Decision._get_metric_weights(config, raw)
+        results = Decision._get_metric_results(scores, weights)
+        result = Decision._get_final_weights(config, results)
+        expected = pd.DataFrame(
+            data=[
+                [0.5, 0.5],
+                [0.5, 0.5],
+            ],
+            columns=["smart", "fun"],
+        )
+        expected = expected.set_index(pd.Index(["cost", "size"], dtype="object"))
+        # sort the columns in expected alphabetically
+        expected = expected.sort_index(axis=1)
+        # sort the rows in expected alphabetically
+        expected = expected.sort_index(axis=0)
+        assert_frame_equal(result, expected)
+
     def test_ctor(self) -> None:
         decision = Decision(config_path=self.CONFIG, raw_path=self.RAW)
         expected = pd.DataFrame(
