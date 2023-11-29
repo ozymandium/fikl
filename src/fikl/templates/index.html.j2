@@ -33,37 +33,60 @@ factor_scorings : list[str]
         </style>
     </head>
     <body>
+        <div>
+            <h1>Final Results</h1>
+            <p>
+                The final selection is <b>{{answer}}</b>
+            </p>
+            <p>
+                The rankings are:
+                <div class="table-container">
+                    {{final_results_table}}
+                </div>
+            </p>
+            <p>
+                This was chosen from the metrics using the following weights:
+                <div class="table-container">
+                    {{final_weights_table}}
+                </div>
+            </p>
+        </div>
+
+        <div>
+            <h1>Results for Each Metric</h1>
+            <div class="table-container">
+                {{results_table}}
+            </div>
+            <p>
+                {% if ignored_factors|length > 0 %}
+                    The following factors are not included in any metric:
+                    <ol>
+                    {% for ignored_factor in ignored_factors %}
+                        <li>{{ignored_factor}}</li>
+                    {% endfor %}
+                    </ol>
+                {% else %}
+                    <b>Ignored Factors</b>: all factors are included in at least one metric!
+                {% endif %}
+            </p>
+        </div>
+
+        <div>
+            <h1>Scoring for Each Metric</h1>
+            {% for metric in scores_tables %}
+                <h2>{{metric}}</h2>
+                <div class="table-container">
+                    {{scores_tables[metric]}}
+                </div>
+            {% endfor %}
+        </div>
+
         <h1>Raw Data</h1>
         <div class="table-container">
             {{raw_table}}
         </div>
-
-        <h1>Scores</h1>
-        {% for metric in scores_tables %}
-            <h2>{{metric}}</h2>
-            <div class="table-container">
-                {{scores_tables[metric]}}
-            </div>
-        {% endfor %}
-
-        <h1>Results</h1>
-        <div>
-            {{results_table}}
-        </div>
-        <p>
-            {% if ignored_factors|length > 0 %}
-                The following factors are not included in any metric:
-                <ol>
-                {% for ignored_factor in ignored_factors %}
-                    <li>{{ignored_factor}}</li>
-                {% endfor %}
-                </ol>
-            {% else %}
-                <b>Ignored Factors</b>: all factors are included in at least one metric!
-            {% endif %}
-        </p>
             
-        <h1>Metrics</h1>
+        <h1>Metrics & Scoring Explanation</h1>
         <div class="table-container">
             {{weights_table}}
         </div>
@@ -86,17 +109,5 @@ factor_scorings : list[str]
             </div> 
         {% endfor %}
         </div>
-
-        <h1>Final Decision</h1>
-        <p>
-            The final selection is <b>{{answer}}</b>
-        </p>
-        The rankings are:
-        <div class="table-container">
-            {{final_results_table}}
-        </div>
-        This was chosen from the metrics using the following weights:
-        <div class="table-container">
-            {{final_weights_table}}
     </body>
 </html>
