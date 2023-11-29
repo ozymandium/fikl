@@ -387,8 +387,8 @@ class Decision:
         # store docs for each factor and scorer
         self.factor_docs = {
             metric: {
-                factor: config["metrics"][metric][factor]["doc"]
-                if "doc" in config["metrics"][metric][factor]
+                factor: config["metrics"][metric][factor]["scoring"]["doc"]
+                if "doc" in config["metrics"][metric][factor]["scoring"]
                 else "\n"
                 for factor in config["metrics"][metric]
             }
