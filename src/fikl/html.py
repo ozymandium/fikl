@@ -369,7 +369,7 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         metric_factors=decision.metric_factors(),
         ignored_factors=ignored_factors,
         ignored_metrics=ignored_metrics,
-        answer=decision.answer,
+        answer=decision.answer(),
         final_results_table=final_results_table,
         final_weights_table=final_weights_table,
     )
