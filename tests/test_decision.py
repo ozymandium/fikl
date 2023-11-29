@@ -9,7 +9,7 @@ from fikl.decision import Decision
 import fikl.scorers
 
 import pandas as pd
-from pandas.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 import numpy as np
 
 
@@ -163,20 +163,14 @@ class TestDecision(unittest.TestCase):
         scores = Decision._get_scores(raw, scorers)
         weights = Decision._get_metric_weights(config, raw)
         results = Decision._get_metric_results(scores, weights)
-        result = Decision._get_final_weights(config, results)
-        expected = pd.DataFrame(
-            data=[
-                [0.5, 0.5],
-                [0.5, 0.5],
-            ],
-            columns=["smart", "fun"],
+        final_weights = Decision._get_final_weights(config, results)
+        expected = pd.Series(
+            data=[0.67, 0.33],
+            index=["smart", "fun"],
         )
-        expected = expected.set_index(pd.Index(["cost", "size"], dtype="object"))
-        # sort the columns in expected alphabetically
-        expected = expected.sort_index(axis=1)
         # sort the rows in expected alphabetically
         expected = expected.sort_index(axis=0)
-        assert_frame_equal(result, expected)
+        assert_series_equal(final_weights, expected)
 
     def test_ctor(self) -> None:
         decision = Decision(config_path=self.CONFIG, raw_path=self.RAW)
