@@ -36,7 +36,7 @@ class ObesityFetcher:
         Parameters
         ----------
         choices : list[str]
-            List of choice names to fetch data for
+            List of "City, State" strings to fetch data for, e.g. "New York, NY"
 
         Returns
         -------
@@ -62,6 +62,38 @@ class ObesityFetcher:
         df = df.loc[choices]
         # return the obesity rate for each choice
         return df["Data_Value"].astype(float)
+
+
+class CountyElectionMargin:
+    """
+    Fetches the margin of victory for the 2020 presidential election for a county.
+
+    Sourced from:
+    MIT Election Data and Science Lab, 2018, "County Presidential Election Returns 2000-2020", 
+    https://doi.org/10.7910/DVN/VOQCHQ, Harvard Dataverse, V11, UNF:6:HaZ8GWG8D2abLleXN3uEig== [fileUNF] 
+    """
+    CODE = "County Politics"
+    SOURCE_FILE = os.path.join(
+        os.path.dirname(__file__), "data", "countypres_2000-2020.csv"
+    )
+
+    def fetch(self, choices: List[str]) -> pd.Series:
+        """
+        Fetches the margin of victory for the 2020 presidential election for a county. Looks up the
+        county in the choices list, and returns the margin of victory for the winning candidate as
+        a percentage of the total votes cast.
+
+        Parameters
+        ----------
+        choices : list[str]
+            List of "City, State" strings to fetch data for, e.g. "New York, NY"
+
+        Returns
+        -------
+        pd.Series
+            Series with the same index as the list of choices. Values are the victory margin for the
+            winning candidate for the choice, as a percentage of the total votes cast.
+        """
 
 
 LOOKUP = {
