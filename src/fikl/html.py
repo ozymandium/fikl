@@ -198,7 +198,10 @@ def _table_to_html(
     if color_score:
         styler = styler.background_gradient(
             axis="index",
-            cmap=sns.color_palette("YlGnBu", as_cmap=True),
+            # cmap=sns.color_palette("YlGnBu", as_cmap=True),
+            # cmap = sns.diverging_palette(10, 150, as_cmap=True),
+            # cmap=sns.light_palette("seagreen", as_cmap=True),
+            cmap = sns.color_palette("RdYlGn", as_cmap=True),
             vmin=0.0,
             vmax=1.0,
         )
