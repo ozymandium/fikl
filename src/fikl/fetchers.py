@@ -64,9 +64,60 @@ class ObesityFetcher:
         return df["Data_Value"].astype(float)
 
 
+class DepressionFetcher:
+    """
+    Fetcher for depression data.
+
+    Source from CDC PLACES project, 2023 data.
+    https://data.cdc.gov/500-Cities-Places/PLACES-Place-Data-GIS-Friendly-Format-2023-release/vgc8-iyc4
+    """
+
+    CODE = "Depression"
+    SOURCE_FILE = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "PLACES__Place_Data__GIS_Friendly_Format___2023_release.csv",
+    )
+
+    def fetch(self, choices: List[str]) -> pd.Series:
+        """
+        Fetches depression data for the given choices.
+
+        Parameters
+        ----------
+        choices : list[str]
+            List of choice names to fetch data for
+
+        Returns
+        -------
+        pd.Series
+            Series with the same index as the list of choices. Values are the depression rate for the
+            choice.
+        """
+        # ensure choices are unique
+        if len(set(choices)) != len(choices):
+            raise ValueError("choices must be unique")
+        # read the data
+        df = pd.read_csv(self.SOURCE_FILE)
+        # choices is a list of strings with the format "city, state". the data has a column
+        # "CityName" with the format "city", and a column "StateAbbr" with the format "state".
+        # create a new column with the format "city, state"
+        df["choice"] = df["PlaceName"] + ", " + df["StateAbbr"]
+        # set the index to the new column
+        df.set_index("choice", inplace=True)
+        # check that all choices are in the data
+        if not set(choices).issubset(set(df.index)):
+            raise ValueError(f"choices not in data: {set(choices) - set(df.index)}")
+        # narrow the data to only the choices we want
+        df = df.loc[choices]
+        # return the depression rate for each choice
+        return df["DEPRESSION_AdjPrev"].astype(float)
+
+
 LOOKUP = {
     fetcher.CODE: fetcher
     for fetcher in [
         ObesityFetcher,
+        DepressionFetcher,
     ]
 }
