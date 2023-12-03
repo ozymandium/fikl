@@ -17,7 +17,6 @@ import logging
 import requests
 
 import pandas as pd
-import geocoder
 
 
 class ObesityFetcher:
@@ -183,13 +182,9 @@ class CityToCountyLookup:
         # city name
         df = self.place_county_df[
             (self.place_county_df["STATE"] == state)
-            & (self.place_county_df["PLACENAME"].str.contains(city))
+            & (self.place_county_df["PLACENAME"] == city + " city")
         ]
-        # sometimes there's more than one row. example is New Orleans Station CDP.
-        if len(df) != 1:
-            # pick the row with " city" in the PLACENAME column
-            df = df[df["PLACENAME"].str.contains(city + " city")]
-        # there should only be one row after that though
+        # there should only be one row
         if len(df) != 1:
             raise ValueError(f"multiple rows for {state}, {city}:\n{df}")
         # get the counties column and split it on the ~ character
@@ -298,6 +293,8 @@ class CountyElectionMargin:
         # filter out rows where party is not DEMOCRAT or REPUBLICAN
         self.df = self.df[self.df["party"].isin(["DEMOCRAT", "REPUBLICAN"])]
 
+        self.city_to_county = CityToCountyLookup()
+
     def fetch(self, choices: List[str]) -> pd.Series:
         """
         Fetches the margin of victory for the 2020 presidential election for a county. Looks up the
@@ -318,21 +315,13 @@ class CountyElectionMargin:
         logger = logging.getLogger(__name__)
         ret = []
 
-        session = requests.Session()
-
         for choice in choices:
-            # use geocoder to get the county name from the choice
-            g = geocoder.osm(choice, session=session)
-            logging.debug(f"geocoder result for {choice}:\n{pprint.pformat(g.json)}")
+            # look up county for city
+            city, state = choice.split(", ")
+            # convert to upper case since that's how it's stored in the data
+            county = self.city_to_county(state, city).upper()
+            logger.debug(f"city: {city}, state: {state}, county: {county}")
 
-            # `county` will be formatted as "Suffolk County". need to convert it to "SUFFOLK"
-            county = g.json["raw"]["address"]["county"]
-            county = county.replace(" County", "").upper()
-            # state abbreviation is in the address as "US-MA"
-            # FIXME: can uppercase the state in the geocoder query and remove this filter instead of
-            #        replacing "US-" with ""
-            state = g.json["raw"]["address"]["ISO3166-2-lvl4"]
-            state = state.replace("US-", "")
             # filter the data to only the county and state we want
             df = self.df[(self.df["county_name"] == county) & (self.df["state_po"] == state)]
 
@@ -352,8 +341,6 @@ class CountyElectionMargin:
             total_votes = float(df["totalvotes"].iloc[0])
             margin = abs((d_votes - r_votes) / total_votes) * 100.0
             ret.append(margin)
-
-        session.close()
 
         return pd.Series(ret, index=choices)
 
