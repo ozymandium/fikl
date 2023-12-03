@@ -82,11 +82,12 @@ class TestCityToCountyLookup(unittest.TestCase):
         self.fetcher = CityToCountyLookup()
 
     def test_call(self) -> None:
-        # self.assertEqual(self.fetcher("AL", "Birmingham"), "Jefferson")
-        pass
+        self.assertEqual(self.fetcher("AL", "Birmingham"), "Jefferson")
+        self.assertEqual(self.fetcher("LA", "New Orleans"), "Orleans")
 
     def test_get_state_abbr(self) -> None:
         self.assertEqual(self.fetcher._get_state_abbr("Alabama"), "AL")
+        self.assertEqual(self.fetcher._get_state_abbr("Louisiana"), "LA")
 
     def test_get_county_pop(self) -> None:
         self.assertEqual(self.fetcher._get_county_pop("AL", "Jefferson"), 665409)

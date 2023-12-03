@@ -185,9 +185,13 @@ class CityToCountyLookup:
             (self.place_county_df["STATE"] == state)
             & (self.place_county_df["PLACENAME"].str.contains(city))
         ]
-        # there should only be one row
+        # sometimes there's more than one row. example is New Orleans Station CDP.
         if len(df) != 1:
-            raise ValueError(f"multiple rows for {state}, {city}")
+            # pick the row with " city" in the PLACENAME column
+            df = df[df["PLACENAME"].str.contains(city + " city")]
+        # there should only be one row after that though
+        if len(df) != 1:
+            raise ValueError(f"multiple rows for {state}, {city}:\n{df}")
         # get the counties column and split it on the ~ character
         counties = df["COUNTIES"].iloc[0].split("~")
         # remove trailing " County" or " Parish" from each county
