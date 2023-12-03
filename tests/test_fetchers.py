@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 
 from fikl.fetchers import LOOKUP as FETCHER_LOOKUP
+from fikl.fetchers import CityToCountyLookup
 
 
 class TestObesityFetcher(unittest.TestCase):
@@ -74,3 +75,22 @@ class TestObesityFetcher(unittest.TestCase):
             self.fetcher.fetch([1.0, 2.0, 3.0])  # type: ignore
         with self.assertRaises(ValueError):
             self.fetcher.fetch([1, 2.0, 3])  # type: ignore
+
+
+class TestCityToCountyLookup(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fetcher = CityToCountyLookup()
+
+    def test_call(self) -> None:
+        self.assertEqual(self.fetcher("AL", "Birmingham"), "Jefferson")
+        self.assertEqual(self.fetcher("LA", "New Orleans"), "Orleans")
+
+    def test_get_state_abbr(self) -> None:
+        self.assertEqual(self.fetcher._get_state_abbr("Alabama"), "AL")
+        self.assertEqual(self.fetcher._get_state_abbr("Louisiana"), "LA")
+
+    def test_get_county_pop(self) -> None:
+        self.assertEqual(self.fetcher._get_county_pop("AL", "Jefferson"), 665409)
+
+    def test_get_counties(self) -> None:
+        self.assertEqual(self.fetcher._get_counties("AL", "Birmingham"), ["Jefferson", "Shelby"])
