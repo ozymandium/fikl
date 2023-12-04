@@ -15,8 +15,8 @@ dependencies = [
     "jinja2", # not sure why this is needed
     "markdown == 3.5.1",
     "beautifulsoup4 == 4.12.2",
-    "geocoder == 1.38.1",
-    "openpyxl == 3.1.2",
+    "openpyxl == 3.1.2", # secondary dependency for something, can't remember what
+    "pycapnp == 1.2.2", # 1.3.0 is broken, 2.0.0 not out of beta yet
     # development
     "pytest == 7.4.3",
     "coverage == 7.3.2",

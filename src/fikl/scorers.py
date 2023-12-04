@@ -20,6 +20,7 @@ TODO:
 - each scorer only ever gets used once. as such, they don't have to be as robust as they are. 
 """
 from fikl.util import ensure_type
+from fikl.config import SCHEMA
 
 import logging
 from collections import namedtuple
@@ -137,6 +138,9 @@ class Bucket:
             if not isinstance(other, Bucket.Pail):
                 return False
             return self.min == other.min and self.max == other.max and self.val == other.val
+
+        def __repr__(self) -> str:
+            return f"Bucket.Pail(min={self.min}, max={self.max}, val={self.val})"
 
     def __init__(self, buckets: List[Dict[str, float]]):
         """
@@ -392,13 +396,27 @@ class Range(Interpolate):
             """
 
 
-LOOKUP = {
-    scorer.CODE: scorer  # type: ignore
-    for scorer in [
-        Star,
-        Bucket,
-        Relative,
-        Interpolate,
-        Range,
-    ]
+_SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range]
+_LOOKUP = {
+    scorer_type.CODE: scorer_type 
+    for scorer_type in _SCORER_TYPES
 }
+
+
+def get_scorer_from_factor(factor: Any) -> Any:
+    """Given a factor, return the scorer that it specifies.
+    
+    Parameters
+    ----------
+    factor : Any
+        A SCHEMA.Factor object.
+
+    Returns
+    -------
+    Any
+        A scorer object
+    """
+    scorer_type = _LOOKUP[str(factor.scoring.which)]
+    assert str(factor.scoring.which) == scorer_type.CODE
+    d = getattr(factor.scoring, scorer_type.CODE).to_dict()
+    return scorer_type(**d)

@@ -5,7 +5,8 @@ import unittest
 import pandas as pd
 import numpy as np
 
-from fikl.scorers import Star, Bucket, Relative, Interpolate, Range
+from fikl.scorers import Star, Bucket, Relative, Interpolate, Range, get_scorer_from_factor
+from fikl.config import SCHEMA
 
 
 class TestStar(unittest.TestCase):
@@ -322,3 +323,89 @@ class TestRange(unittest.TestCase):
         """
         self.assertEqual(Range(worst=0.0, best=100.0), Range(worst=0.0, best=100.0))
         self.assertNotEqual(Range(worst=0.0, best=100.0), Range(worst=100.0, best=0.0))
+
+
+class TestGetScorerFromFactor(unittest.TestCase):
+
+    def test_star(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "star".
+        """
+        factor = SCHEMA.Factor.new_message()
+        factor.scoring.star=SCHEMA.StarScorerConfig(min=1, max=5)
+        scorer = get_scorer_from_factor(factor)
+        self.assertEqual(scorer, Star(min=1, max=5))
+
+    def test_bucket(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "bucket".
+        """
+        factor = SCHEMA.Factor.new_message()
+        factor.scoring.bucket=SCHEMA.BucketScorerConfig(
+            buckets=[
+                SCHEMA.BucketScorerConfig.Bucket(min=0.0, max=1.0, val=0.2),
+                SCHEMA.BucketScorerConfig.Bucket(min=1.0, max=2.0, val=0.4),
+                SCHEMA.BucketScorerConfig.Bucket(min=2.0, max=3.0, val=0.6),
+                SCHEMA.BucketScorerConfig.Bucket(min=3.0, max=4.0, val=0.8),
+                SCHEMA.BucketScorerConfig.Bucket(min=4.0, max=5.0, val=1.0),
+            ]
+        )
+        scorer = get_scorer_from_factor(factor)
+        expected = Bucket(
+            [
+                {"min": 0.0, "max": 1.0, "val": 0.2},
+                {"min": 1.0, "max": 2.0, "val": 0.4},
+                {"min": 2.0, "max": 3.0, "val": 0.6},
+                {"min": 3.0, "max": 4.0, "val": 0.8},
+                {"min": 4.0, "max": 5.0, "val": 1.0},
+            ]
+        )
+        # capnp introduces floating point errors when converting to and from json, so we need to
+        # compare the pail values with some tolerance
+        self.assertEqual(len(scorer.pails), len(expected.pails))
+        for i in range(len(scorer.pails)):
+            self.assertAlmostEqual(scorer.pails[i].min, expected.pails[i].min, places=6)
+            self.assertAlmostEqual(scorer.pails[i].max, expected.pails[i].max, places=6)
+            self.assertAlmostEqual(scorer.pails[i].val, expected.pails[i].val, places=6)
+
+    def test_relative(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "relative".
+        """
+        factor = SCHEMA.Factor.new_message()
+        factor.scoring.relative=SCHEMA.RelativeScorerConfig(invert=False)
+        scorer = get_scorer_from_factor(factor)
+        self.assertEqual(scorer, Relative(invert=False))
+
+    def test_interpolate(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "interpolate".
+
+        FIXME: stop using "in" as a variable name
+        """
+        factor = SCHEMA.Factor.new_message()
+        factor.scoring.interpolate=SCHEMA.InterpolateScorerConfig(
+            knots=[
+                SCHEMA.InterpolateScorerConfig.Knot(**{"in": -1.0, "out": 0.0}),
+                SCHEMA.InterpolateScorerConfig.Knot(**{"in": 0.0, "out": 1.0}),
+                SCHEMA.InterpolateScorerConfig.Knot(**{"in": 1.0, "out": 0.0}),
+            ]
+        )
+        scorer = get_scorer_from_factor(factor)
+        expected = Interpolate(
+            [
+                {"in": -1.0, "out": 0.0},
+                {"in": 0.0, "out": 1.0},
+                {"in": 1.0, "out": 0.0},
+            ]
+        )
+        # capnp introduces floating point errors when converting to and from json, so we need to
+        # compare the pail values with some tolerance
+        self.assertEqual(len(scorer.knots), len(expected.knots))
+        for i in range(len(scorer.knots)):
+            self.assertAlmostEqual(
+            self.assertAlmostEqual(scorer.knots[i].out, expected.knots[i].out, places=6)
