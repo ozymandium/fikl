@@ -326,14 +326,13 @@ class TestRange(unittest.TestCase):
 
 
 class TestGetScorerFromFactor(unittest.TestCase):
-
     def test_star(self) -> None:
         """
         Test that the get_scorer_from_factor function returns the correct scorer when the factor is
         "star".
         """
         factor = SCHEMA.Factor.new_message()
-        factor.scoring.star=SCHEMA.StarScorerConfig(min=1, max=5)
+        factor.scoring.star = SCHEMA.StarScorerConfig(min=1, max=5)
         scorer = get_scorer_from_factor(factor)
         self.assertEqual(scorer, Star(min=1, max=5))
 
@@ -343,7 +342,7 @@ class TestGetScorerFromFactor(unittest.TestCase):
         "bucket".
         """
         factor = SCHEMA.Factor.new_message()
-        factor.scoring.bucket=SCHEMA.BucketScorerConfig(
+        factor.scoring.bucket = SCHEMA.BucketScorerConfig(
             buckets=[
                 SCHEMA.BucketScorerConfig.Bucket(min=0.0, max=1.0, val=0.2),
                 SCHEMA.BucketScorerConfig.Bucket(min=1.0, max=2.0, val=0.4),
@@ -376,7 +375,7 @@ class TestGetScorerFromFactor(unittest.TestCase):
         "relative".
         """
         factor = SCHEMA.Factor.new_message()
-        factor.scoring.relative=SCHEMA.RelativeScorerConfig(invert=False)
+        factor.scoring.relative = SCHEMA.RelativeScorerConfig(invert=False)
         scorer = get_scorer_from_factor(factor)
         self.assertEqual(scorer, Relative(invert=False))
 
@@ -388,7 +387,7 @@ class TestGetScorerFromFactor(unittest.TestCase):
         FIXME: stop using "in" as a variable name
         """
         factor = SCHEMA.Factor.new_message()
-        factor.scoring.interpolate=SCHEMA.InterpolateScorerConfig(
+        factor.scoring.interpolate = SCHEMA.InterpolateScorerConfig(
             knots=[
                 SCHEMA.InterpolateScorerConfig.Knot(**{"in": -1.0, "out": 0.0}),
                 SCHEMA.InterpolateScorerConfig.Knot(**{"in": 0.0, "out": 1.0}),
@@ -404,8 +403,17 @@ class TestGetScorerFromFactor(unittest.TestCase):
             ]
         )
         # capnp introduces floating point errors when converting to and from json, so we need to
-        # compare the pail values with some tolerance
-        self.assertEqual(len(scorer.knots), len(expected.knots))
-        for i in range(len(scorer.knots)):
-            self.assertAlmostEqual(
-            self.assertAlmostEqual(scorer.knots[i].out, expected.knots[i].out, places=6)
+        # compare the pail values with some tolerance. instead, just compare the spline output
+        # for a range of values with some tolerance
+        for i in np.linspace(-1.0, 1.0, 100):
+            self.assertAlmostEqual(scorer(i), expected(i), places=6)
+
+    def test_range(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "range".
+        """
+        factor = SCHEMA.Factor.new_message()
+        factor.scoring.range = SCHEMA.RangeScorerConfig(worst=0.0, best=100.0)
+        scorer = get_scorer_from_factor(factor)
+        self.assertEqual(scorer, Range(worst=0.0, best=100.0))

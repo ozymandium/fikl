@@ -11,8 +11,6 @@ import yaml
 import fikl.config
 
 
-
-
 class TestParse(unittest.TestCase):
     CONFIG = os.path.join(os.path.dirname(__file__), "data", "simple.yaml")
 
@@ -29,9 +27,9 @@ class TestParse(unittest.TestCase):
                 self.assertEqual(l1[i], l2[i])
 
     def compare_dicts(self, d1: dict, d2: dict) -> None:
-        """round tripping yaml to json to binary to json to yaml sometimes results in floats being 
+        """round tripping yaml to json to binary to json to yaml sometimes results in floats being
         stored as ints or losing some precision, so we need to compare the yaml files by loading them
-        and individually compare the fields and values (not the types). any numerical values need to 
+        and individually compare the fields and values (not the types). any numerical values need to
         be compared with some tolerance.
         """
         for k, v in d1.items():
@@ -86,12 +84,12 @@ class TestParse(unittest.TestCase):
         config = fikl.config.load(self.CONFIG)
         self.assertEqual(len(config.factors), 5)
         self.assertEqual(
-            [config.factors[i].name for i in range(len(config.factors))], 
-            ["cost", "size", "looks", "economy", "power"]
+            [config.factors[i].name for i in range(len(config.factors))],
+            ["cost", "size", "looks", "economy", "power"],
         )
         self.assertEqual(
-            [config.factors[i].source for i in range(len(config.factors))], 
-            ["cost", "size", "looks", "economy", "power"]
+            [config.factors[i].source for i in range(len(config.factors))],
+            ["cost", "size", "looks", "economy", "power"],
         )
         for i in range(len(config.factors)):
             scoring_type = str(config.factors[i].scoring.which)

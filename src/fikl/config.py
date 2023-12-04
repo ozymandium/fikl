@@ -73,7 +73,7 @@ def load(config_yaml_path: str) -> "Config":
     ----------
     config_yaml_path : str
         Path to the YAML config file.
-    
+
     Returns
     -------
     Config

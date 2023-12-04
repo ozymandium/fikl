@@ -397,15 +397,12 @@ class Range(Interpolate):
 
 
 _SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range]
-_LOOKUP = {
-    scorer_type.CODE: scorer_type 
-    for scorer_type in _SCORER_TYPES
-}
+_LOOKUP = {scorer_type.CODE: scorer_type for scorer_type in _SCORER_TYPES}
 
 
 def get_scorer_from_factor(factor: Any) -> Any:
     """Given a factor, return the scorer that it specifies.
-    
+
     Parameters
     ----------
     factor : Any
