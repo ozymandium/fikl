@@ -20,7 +20,7 @@ TODO:
 - each scorer only ever gets used once. as such, they don't have to be as robust as they are. 
 """
 from fikl.util import ensure_type
-from fikl.config import SCHEMA
+from fikl.proto import config_pb2
 
 import logging
 from collections import namedtuple
@@ -29,6 +29,7 @@ from inspect import cleandoc
 
 import pandas as pd
 import numpy as np
+from google.protobuf.json_format import MessageToDict
 
 
 class Star:
@@ -400,20 +401,24 @@ _SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range]
 _LOOKUP = {scorer_type.CODE: scorer_type for scorer_type in _SCORER_TYPES}
 
 
-def get_scorer_from_factor(factor: Any) -> Any:
+def get_scorer_from_factor(factor: config_pb2.Factor) -> Any:
     """Given a factor, return the scorer that it specifies.
 
     Parameters
     ----------
-    factor : Any
-        A SCHEMA.Factor object.
+    factor : config_pb2.Factor
+        Factor to get scorer for
 
     Returns
     -------
     Any
         A scorer object
     """
-    scorer_type = _LOOKUP[str(factor.scoring.which)]
-    assert str(factor.scoring.which) == scorer_type.CODE
-    d = getattr(factor.scoring, scorer_type.CODE).to_dict()
-    return scorer_type(**d)
+    which = factor.scoring.WhichOneof("config")
+    if which is None:
+        raise ValueError("factor {} does not specify a scorer".format(factor))
+    scorer_type = _LOOKUP[which]
+    assert which == scorer_type.CODE
+    scorer_config = getattr(factor.scoring, which)
+    scorer_config_dict = MessageToDict(scorer_config)
+    return scorer_type(**scorer_config_dict)

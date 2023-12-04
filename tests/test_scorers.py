@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from fikl.scorers import Star, Bucket, Relative, Interpolate, Range, get_scorer_from_factor
-from fikl.config import SCHEMA
+from fikl.proto import config_pb2
 
 
 class TestStar(unittest.TestCase):
@@ -331,8 +331,11 @@ class TestGetScorerFromFactor(unittest.TestCase):
         Test that the get_scorer_from_factor function returns the correct scorer when the factor is
         "star".
         """
-        factor = SCHEMA.Factor.new_message()
-        factor.scoring.star = SCHEMA.StarScorerConfig(min=1, max=5)
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(star=config_pb2.StarScorerConfig(min=1, max=5)),
+        )
         scorer = get_scorer_from_factor(factor)
         self.assertEqual(scorer, Star(min=1, max=5))
 
@@ -341,15 +344,20 @@ class TestGetScorerFromFactor(unittest.TestCase):
         Test that the get_scorer_from_factor function returns the correct scorer when the factor is
         "bucket".
         """
-        factor = SCHEMA.Factor.new_message()
-        factor.scoring.bucket = SCHEMA.BucketScorerConfig(
-            buckets=[
-                SCHEMA.BucketScorerConfig.Bucket(min=0.0, max=1.0, val=0.2),
-                SCHEMA.BucketScorerConfig.Bucket(min=1.0, max=2.0, val=0.4),
-                SCHEMA.BucketScorerConfig.Bucket(min=2.0, max=3.0, val=0.6),
-                SCHEMA.BucketScorerConfig.Bucket(min=3.0, max=4.0, val=0.8),
-                SCHEMA.BucketScorerConfig.Bucket(min=4.0, max=5.0, val=1.0),
-            ]
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(
+                bucket=config_pb2.BucketScorerConfig(
+                    buckets=[
+                        config_pb2.BucketScorerConfig.Bucket(min=0.0, max=1.0, val=0.2),
+                        config_pb2.BucketScorerConfig.Bucket(min=1.0, max=2.0, val=0.4),
+                        config_pb2.BucketScorerConfig.Bucket(min=2.0, max=3.0, val=0.6),
+                        config_pb2.BucketScorerConfig.Bucket(min=3.0, max=4.0, val=0.8),
+                        config_pb2.BucketScorerConfig.Bucket(min=4.0, max=5.0, val=1.0),
+                    ]
+                )
+            ),
         )
         scorer = get_scorer_from_factor(factor)
         expected = Bucket(
@@ -361,21 +369,18 @@ class TestGetScorerFromFactor(unittest.TestCase):
                 {"min": 4.0, "max": 5.0, "val": 1.0},
             ]
         )
-        # capnp introduces floating point errors when converting to and from json, so we need to
-        # compare the pail values with some tolerance
-        self.assertEqual(len(scorer.pails), len(expected.pails))
-        for i in range(len(scorer.pails)):
-            self.assertAlmostEqual(scorer.pails[i].min, expected.pails[i].min, places=6)
-            self.assertAlmostEqual(scorer.pails[i].max, expected.pails[i].max, places=6)
-            self.assertAlmostEqual(scorer.pails[i].val, expected.pails[i].val, places=6)
+        self.assertEqual(scorer, expected)
 
     def test_relative(self) -> None:
         """
         Test that the get_scorer_from_factor function returns the correct scorer when the factor is
         "relative".
         """
-        factor = SCHEMA.Factor.new_message()
-        factor.scoring.relative = SCHEMA.RelativeScorerConfig(invert=False)
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(relative=config_pb2.RelativeScorerConfig(invert=False)),
+        )
         scorer = get_scorer_from_factor(factor)
         self.assertEqual(scorer, Relative(invert=False))
 
@@ -386,13 +391,18 @@ class TestGetScorerFromFactor(unittest.TestCase):
 
         FIXME: stop using "in" as a variable name
         """
-        factor = SCHEMA.Factor.new_message()
-        factor.scoring.interpolate = SCHEMA.InterpolateScorerConfig(
-            knots=[
-                SCHEMA.InterpolateScorerConfig.Knot(**{"in": -1.0, "out": 0.0}),
-                SCHEMA.InterpolateScorerConfig.Knot(**{"in": 0.0, "out": 1.0}),
-                SCHEMA.InterpolateScorerConfig.Knot(**{"in": 1.0, "out": 0.0}),
-            ]
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(
+                interpolate=config_pb2.InterpolateScorerConfig(
+                    knots=[
+                        config_pb2.InterpolateScorerConfig.Knot(**{"in": -1.0, "out": 0.0}),
+                        config_pb2.InterpolateScorerConfig.Knot(**{"in": 0.0, "out": 1.0}),
+                        config_pb2.InterpolateScorerConfig.Knot(**{"in": 1.0, "out": 0.0}),
+                    ]
+                )
+            ),
         )
         scorer = get_scorer_from_factor(factor)
         expected = Interpolate(
@@ -402,18 +412,17 @@ class TestGetScorerFromFactor(unittest.TestCase):
                 {"in": 1.0, "out": 0.0},
             ]
         )
-        # capnp introduces floating point errors when converting to and from json, so we need to
-        # compare the pail values with some tolerance. instead, just compare the spline output
-        # for a range of values with some tolerance
-        for i in np.linspace(-1.0, 1.0, 100):
-            self.assertAlmostEqual(scorer(i), expected(i), places=6)
+        self.assertEqual(scorer, expected)
 
     def test_range(self) -> None:
         """
         Test that the get_scorer_from_factor function returns the correct scorer when the factor is
         "range".
         """
-        factor = SCHEMA.Factor.new_message()
-        factor.scoring.range = SCHEMA.RangeScorerConfig(worst=0.0, best=100.0)
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(range=config_pb2.RangeScorerConfig(worst=0.0, best=100.0)),
+        )
         scorer = get_scorer_from_factor(factor)
         self.assertEqual(scorer, Range(worst=0.0, best=100.0))
