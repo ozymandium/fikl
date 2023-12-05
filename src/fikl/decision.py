@@ -202,7 +202,7 @@ class Decision:
         return scores
 
     @staticmethod
-    def _get_metric_weights(config: config_pb2.Config, raw: pd.DataFrame) -> pd.DataFrame:
+    def _get_metric_weights(config: config_pb2.Config) -> pd.DataFrame:
         """
         Generate the metric weights dataframe, which is necessary to compute results from the scores.
         The index is the metric name, the columns are the factors.
@@ -222,17 +222,19 @@ class Decision:
         """
         weights = pd.DataFrame(
             0,
-            columns=raw.columns,
-            index=list(config["metrics"].keys()),
+            columns=[factor.name for factor in config.factors],
+            index=[metric.name for metric in config.metrics],
         )
+
         # for each metric, set the weights for each factor
-        for metric in config["metrics"]:
-            for factor in config["metrics"][metric]:
-                weights.loc[metric, factor] = config["metrics"][metric][factor]["weight"]
+        for metric in config.metrics:
+            for factor_nw in metric.factors:
+                weights.loc[metric.name, factor_nw.name] = factor_nw.weight
         # normalize the weights for each metric (along each row)
         weights = weights.div(weights.sum(axis=1), axis=0)
-        # sort the rows alphabetically
-        weights = weights.reindex(sorted(weights.index), axis=0)
+        # sort
+        weights = weights.sort_index(axis=0)
+        weights = weights.sort_index(axis=1)
         return weights
 
     @staticmethod
