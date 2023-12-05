@@ -1,61 +1,37 @@
-actors_scoring: &actors_scoring
-    type: relative
-    config:
-        invert: false
-rotten_tomatoes_scoring: &rotten_tomatoes_scoring
-    type: range
-    config:
-        best: 100.0
-        worst: 0.0
-sam_scoring: &sam_scoring   
-    type: star
-    config:
-        min: 1
-        max: 5
-john_scoring: &john_scoring
-    type: star
-    config:
-        min: 1
-        max: 5
-henry_scoring: &henry_scoring
-    type: star
-    config:
-        min: 1
-        max: 5
-jane_scoring: &jane_scoring 
-    type: star
-    config:
-        min: 1
-        max: 5
-lighthearted_scoring: &lighthearted_scoring
-    type: star
-    config:
-        min: 0
-        max: 1
+factors:
+    -   name: actors
+        source: actors
+        scoring: {relative: {invert: true}}
+    -   name: rotten_tomatoes
+        source: rotten tomatoes
+        scoring: {range: {best: 100.0, worst: 0.0}}
+    -   name: sam
+        source: sam
+        scoring: {star: {min: 1, max: 5}}
+    -   name: john
+        source: john
+        scoring: {star: {min: 1, max: 5}}
+    -   name: henry
+        source: henry
+        scoring: {star: {min: 1, max: 5}}
+    -   name: jane
+        source: jane
+        scoring: {star: {min: 1, max: 5}}
+    -   name: lighthearted
+        source: lighthearted
+        scoring: {star: {min: 0, max: 1}}
 metrics:
-    personal:
-        john:
-            scoring: *john_scoring
-            weight: 1.0
-        sam:
-            scoring: *sam_scoring
-            weight: 1.0
-        henry:
-            scoring: *henry_scoring
-            weight: 1.0
-        jane:
-            scoring: *jane_scoring
-            weight: 1.0
-    critical:
-        rotten tomatoes: 
-            scoring: *rotten_tomatoes_scoring
-            weight: 1.0
-        actors: 
-            scoring: *actors_scoring
-            weight: 1.0
-        lighthearted:
-            scoring: *lighthearted_scoring
-            weight: 1.0
+    -   name: personal
+        factors:
+            - {name: john, weight: 1.0}
+            - {name: sam, weight: 1.0}
+            - {name: henry, weight: 1.0}
+            - {name: jane, weight: 1.0}
+    -   name: critical
+        factors:
+            - {name: rotten_tomatoes, weight: 1.0}
+            - {name: actors, weight: 1.0}
+            - {name: lighthearted, weight: 1.0}
 final: 
-    personal: 0.5
-    critical: 0.5
+    - {name: personal, weight: 0.5}
+    - {name: critical, weight: 0.5}

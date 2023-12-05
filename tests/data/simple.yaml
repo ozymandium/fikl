@@ -1,9 +1,7 @@
 factors:
     -   name: cost
         source: cost
-        scoring:
-            relative:
-                invert: true
+        scoring: {relative: {invert: true}}
         doc: |
             This is a comment
     -   name: size
@@ -16,10 +14,7 @@ factors:
                     - {in: 10.0, out: 0.0}
     -   name: looks
         source: looks
-        scoring:
-            star:
-                min: 1
-                max: 5
+        scoring: {star: {min: 1, max: 5}}
     -   name: economy
         source: economy
         scoring:
@@ -32,10 +27,7 @@ factors:
                     - {min: 8.0, max: 10.0, val: 1.0}
     -   name: power2
         source: power
-        scoring:
-            range:
-                best: 10.0
-                worst: 0.0
+        scoring: {range: {best: 10.0, worst: 0.0}}
 metrics:
     -   name: smart
         factors:
