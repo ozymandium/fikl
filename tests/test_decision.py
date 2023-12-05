@@ -104,8 +104,10 @@ class TestDecision(unittest.TestCase):
                     [0.25, 0.8, 0.6],
                     [0.0, 1.0, 0.6],
                 ],
-                columns=["choice", "cost", "size", "economy"],
-                index=pd.Index(["one", "two", "three", "four", "five"], dtype="object"),
+                columns=["cost", "size", "economy"],
+                index=pd.Index(
+                    ["one", "two", "three", "four", "five"], dtype="object", name="choice"
+                ),
             ),
             "fun": pd.DataFrame(
                 data=[
@@ -115,15 +117,12 @@ class TestDecision(unittest.TestCase):
                     [0.75, 0.4],
                     [1.0, 0.5],
                 ],
-                columns=["choice", "looks", "power2"],
-                index=pd.Index(["one", "two", "three", "four", "five"], dtype="object"),
+                columns=["looks", "power2"],
+                index=pd.Index(
+                    ["one", "two", "three", "four", "five"], dtype="object", name="choice"
+                ),
             ),
         }
-        # # sort the columns and rows in expected alphabetically
-        # for key in expected.keys():
-        #     expected[key] = expected[key].sort_index(axis=1)
-        #     expected[key] = expected[key].set_index("choice")
-        raise Exception(f"scores:\n{pprint.pformat(scores)}\nexpected:\n{pprint.pformat(expected)}")
         self.assertEqual(scores.keys(), expected.keys())
         for key in scores.keys():
             assert_frame_equal(scores[key], expected[key], check_exact=False)
