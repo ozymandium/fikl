@@ -98,23 +98,25 @@ class TestDecision(unittest.TestCase):
         expected = {
             "smart": pd.DataFrame(
                 data=[
-                    ["one", 1.0, 0.2, 0.2],
-                    ["two", 0.75, 0.4, 0.4],
-                    ["three", 0.5, 0.6, 0.4],
-                    ["four", 0.25, 0.8, 0.6],
-                    ["five", 0.0, 1.0, 0.6],
+                    [1.0, 0.2, 0.2],
+                    [0.75, 0.4, 0.4],
+                    [0.5, 0.6, 0.4],
+                    [0.25, 0.8, 0.6],
+                    [0.0, 1.0, 0.6],
                 ],
                 columns=["choice", "cost", "size", "economy"],
+                index=pd.Index(["one", "two", "three", "four", "five"], dtype="object"),
             ),
             "fun": pd.DataFrame(
                 data=[
-                    ["one", 0.0, 0.1],
-                    ["two", 0.25, 0.2],
-                    ["three", 0.5, 0.3],
-                    ["four", 0.75, 0.4],
-                    ["five", 1.0, 0.5],
+                    [0.0, 0.1],
+                    [0.25, 0.2],
+                    [0.5, 0.3],
+                    [0.75, 0.4],
+                    [1.0, 0.5],
                 ],
                 columns=["choice", "looks", "power2"],
+                index=pd.Index(["one", "two", "three", "four", "five"], dtype="object"),
             ),
         }
         # # sort the columns and rows in expected alphabetically
