@@ -202,3 +202,4 @@ class TestDecision(unittest.TestCase):
             decision.metric_factors(),
             {"smart": sorted(["cost", "size", "economy"]), "fun": sorted(["looks", "power2"])},
         )
+        self.assertEqual(decision.answer(), "five")
