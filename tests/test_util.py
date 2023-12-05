@@ -8,6 +8,7 @@ from numbers import Number
 from fikl.util import (
     ensure_type,
     build_ordered_depth_first_tree,
+    merge_dicts,
 )
 
 
@@ -106,3 +107,73 @@ class TestBuildOrderedDepthFirstTree(unittest.TestCase):
             ]
         )
         self.assertEqual(build_ordered_depth_first_tree(items, levels), expected)
+
+
+class TestMergeDicts(unittest.TestCase):
+    """Tests merge_dicts, which merges two dicts as long as they don't have conflicting keys."""
+
+    def test_simple(self) -> None:
+        a = {"a": 1}
+        b = {"b": 2}
+        expected = {"a": 1, "b": 2}
+        self.assertEqual(merge_dicts(a, b), expected)
+
+    def test_conflict(self) -> None:
+        a = {"a": 1}
+        b = {"a": 2}
+        with self.assertRaises(ValueError):
+            merge_dicts(a, b)
+
+    def test_nested(self) -> None:
+        a = {"a": {"b": 1}}
+        b = {"a": {"c": 2}}
+        expected = {"a": {"b": 1, "c": 2}}
+        self.assertEqual(merge_dicts(a, b), expected)
+
+    def test_nested_conflict(self) -> None:
+        a = {"a": {"b": 1}}
+        b = {"a": {"b": 2}}
+        with self.assertRaises(ValueError):
+            merge_dicts(a, b)
+
+    def test_nested_conflict_2(self) -> None:
+        a = {"a": {"b": 1}}
+        b = {"a": 2}
+        with self.assertRaises(ValueError):
+            merge_dicts(a, b)
+
+    def test_nested_conflict_3(self) -> None:
+        a = {"a": 2}
+        b = {"a": {"b": 1}}
+        with self.assertRaises(ValueError):
+            merge_dicts(a, b)
+
+    def test_nested_conflict_4(self) -> None:
+        a = {"a": {"b": 1}}
+        b = {"a": {"b": {"c": 2}}}
+        with self.assertRaises(ValueError):
+            merge_dicts(a, b)
+
+    def test_nested_conflict_5(self) -> None:
+        a = {"a": {"b": {"c": 2}}}
+        b = {"a": {"b": 1}}
+        with self.assertRaises(ValueError):
+            merge_dicts(a, b)
+
+    def test_nested_conflict_6(self) -> None:
+        a = {"a": {"b": {"c": 2}}}
+        b = {"a": {"b": {"c": 3}}}
+        with self.assertRaises(ValueError):
+            merge_dicts(a, b)
+
+    def test_3_levels(self) -> None:
+        a = {"a": {"b": {"c": 2}}}
+        b = {"a": {"d": 3}}
+        expected = {"a": {"b": {"c": 2}, "d": 3}}
+        self.assertEqual(merge_dicts(a, b), expected)
+
+    def test_3_levels_update(self) -> None:
+        a = {"a": {"b": {"c": 2}}}
+        b = {"a": {"b": {"d": 3}}}
+        expected = {"a": {"b": {"c": 2, "d": 3}}}
+        self.assertEqual(merge_dicts(a, b), expected)
