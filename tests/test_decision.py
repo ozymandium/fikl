@@ -145,27 +145,27 @@ class TestDecision(unittest.TestCase):
         expected = expected.sort_index(axis=0)
         assert_frame_equal(metric_weights, expected)
 
-    # def test_get_metric_results(self) -> None:
-    #     config = load_config(self.CONFIG_PATH)
-    #     raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
-    #     scores = Decision._get_scores(
-    #         raw,
-    #         Decision._get_scorers(config),
-    #     )
-    #     weights = Decision._get_metric_weights(config, raw)
-    #     result = Decision._get_metric_results(scores, weights)
-    #     expected = pd.DataFrame(
-    #         data=[
-    #             ["one", 0.4666666666666667, 0.05],
-    #             ["two", 0.5166666666666667, 0.225],
-    #             ["three", 0.5, 0.4],
-    #             ["four", 0.55, 0.575],
-    #             ["five", 0.5333333333333333, 0.75],
-    #         ],
-    #         columns=["choice", "smart", "fun"],
-    #     )
-    #     expected = expected.set_index("choice")
-    #     assert_frame_equal(result, expected)
+    def test_get_metric_results(self) -> None:
+        config = load_config(self.CONFIG_PATH)
+        raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
+        scores = Decision._get_scores(
+            raw,
+            Decision._get_scorers(config),
+        )
+        weights = Decision._get_metric_weights(config)
+        result = Decision._get_metric_results(scores, weights)
+        expected = pd.DataFrame(
+            data=[
+                ["one", 0.4666666666666667, 0.05],
+                ["two", 0.5166666666666667, 0.225],
+                ["three", 0.5, 0.4],
+                ["four", 0.55, 0.575],
+                ["five", 0.5333333333333333, 0.75],
+            ],
+            columns=["choice", "smart", "fun"],
+        )
+        expected = expected.set_index("choice")
+        assert_frame_equal(result, expected)
 
     # def test_get_final_weights(self) -> None:
     #     config = load_config(self.CONFIG_PATH)

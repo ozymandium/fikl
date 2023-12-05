@@ -39,8 +39,8 @@ class Decision:
         scores for each metric.
         key: the name of the metric
         value: dataframe with the the ranking matrix. the index is the choice name, the columns are
-        the factors. values are floats between 0 and 1. for columns which are not included in that
-        metric, the value is np.nan
+        the factors. values are floats between 0 and 1. columns which are not included in that
+        metric are no longer included in the dataframe.
     weights : pd.DataFrame
         the weights for each factor for each metric. the index is the metric name, the columns are
         the factors. the "All" metric is automatically added which includes all factors
@@ -167,8 +167,8 @@ class Decision:
     ) -> dict[str, pd.DataFrame]:
         """
         Generate a score dataframe for each metric. The index is the choice name, the columns are
-        the factors. The values are the scores for that factor for that choice. If the column is
-        not included in that metric, the value is np.nan
+        the factors. The values are the scores for that factor for that choice. No columns which
+        are not included in that metric are included in the dataframe.
 
         Parameters
         ----------
@@ -187,8 +187,7 @@ class Decision:
             dict of scores for each metric
             key: metric name
             value: dataframe with the the ranking matrix. the index is the choice name, the columns are
-            the factors. values are floats between 0 and 1. for columns which are not included in that
-            metric, the value is np.nan
+            the factors. values are floats between 0 and 1.
         """
         ZEROS = lambda factor_col: pd.Series(np.zeros(len(factor_col)), index=factor_col.index)
         scores = {}
@@ -201,6 +200,8 @@ class Decision:
             )
             for factor_name, (source, scorer) in factor_scorers.items():
                 scores[metric][factor_name] = scorer(raw[source])
+            # ensure no nans remain
+            assert not scores[metric].isna().any().any()
         return scores
 
     @staticmethod
@@ -209,7 +210,7 @@ class Decision:
         Generate the metric weights dataframe, which is necessary to compute results from the scores.
         The index is the metric name, the columns are the factors.
         The values are the weights for that factor for that metric. If the column is not included
-        in that metric, the value is np.nan
+        in that metric, the value is 0.
 
         Parameters
         ----------
@@ -282,7 +283,7 @@ class Decision:
         """
         Generate the results dataframe. The index is the choice name, the columns are the metrics.
         The values are the results for that choice for that metric. If the column is not included
-        in that metric, the value is np.nan
+        in that metric, it will not be included in the dataframe.
 
         Parameters
         ----------
@@ -290,8 +291,8 @@ class Decision:
             dict of scores for each metric
             key: metric name
             value: dataframe with the the ranking matrix. the index is the choice name, the columns are
-            the factors. values are floats between 0 and 1. for columns which are not included in that
-            metric, the value is np.nan
+            the factors. values are floats between 0 and 1. columns which are not included in that
+            metric are no longer included in the dataframe.
         metric_weights : pd.DataFrame
             the weights for each factor for each metric. the index is the metric name, the
             columns are the factors.
@@ -302,15 +303,14 @@ class Decision:
             the results table. the index is the choice name, the columns are the metrics. values are
             floats between 0 and 1.
         """
-        # check and make sure that the columns are shared between scores and weights
-        for metric in metric_weights.index:
-            if set(scores[metric].columns) != set(metric_weights.columns):
+        # for each table in scores, ensure that all columns are included in metric_weights
+        for _, score in scores.items():
+            if set(score.columns).difference(set(metric_weights.columns)):
                 raise ValueError(
-                    "score columns {} do not match weight columns {}".format(
-                        set(scores[metric].columns), set(metric_weights.columns)
+                    "score columns {} are not included in metric weights columns {}".format(
+                        set(score.columns), set(metric_weights.columns)
                     )
                 )
-
         # ensure that all entries in scores have the same rows
         index = list(scores.values())[0].index
         for _, score in scores.items():
@@ -324,7 +324,14 @@ class Decision:
             index=index,
         )
         for metric, score in scores.items():
-            results[metric] = score.dot(metric_weights.loc[metric])
+            # metric_weights will have a column for every possible factors, but each dataframe in scores
+            # will only have columns for the factors included in that metric. so we need to drop the
+            # columns from metric_weights that are not included in any of the scores dataframes.
+            # this is necessary because we will be multiplying the scores dataframes by the metric
+            this_metric_weights = metric_weights.drop(
+                columns=set(metric_weights.columns).difference(set(score.columns))
+            )
+            results[metric] = score.dot(this_metric_weights.T).loc[:, metric]
         return results
 
     @staticmethod
