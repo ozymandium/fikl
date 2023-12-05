@@ -1,5 +1,6 @@
 from fikl.decision import Decision
 from fikl.html import report
+from fikl.config import load as load_config
 
 import argparse
 import logging
@@ -34,7 +35,8 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    decision = Decision(config_path=args.config, raw_path=args.data)
+    config = load_config(args.config)
+    decision = Decision(config=config, raw_path=args.data)
     report(decision, args.output)
 
 
