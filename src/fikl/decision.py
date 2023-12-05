@@ -226,7 +226,9 @@ class Decision:
         weights = pd.DataFrame(
             0,
             columns=[factor.name for factor in config.factors],
-            index=[metric.name for metric in config.metrics],
+            index=pd.Index(
+                [metric.name for metric in config.metrics], name="metric", dtype="object"
+            ),
         )
 
         # for each metric, set the weights for each factor
@@ -319,7 +321,7 @@ class Decision:
                     "score index {} does not match index {}".format(score.index, index)
                 )
         results = pd.DataFrame(
-            data=np.empty((len(index), len(scores))),
+            data=np.empty((len(index), len(scores))) * np.nan,
             columns=list(scores.keys()),
             index=index,
         )
@@ -332,6 +334,7 @@ class Decision:
                 columns=set(metric_weights.columns).difference(set(score.columns))
             )
             results[metric] = score.dot(this_metric_weights.T).loc[:, metric]
+        assert not results.isna().any().any()
         return results
 
     @staticmethod

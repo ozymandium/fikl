@@ -77,17 +77,17 @@ class TestDecision(unittest.TestCase):
         result = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
         expected = pd.DataFrame(
             data=[
-                ["one", 1.0, 1.0, 1, 1.0, 1.0],
-                ["two", 2.0, 2.0, 2, 2.0, 2.0],
-                ["three", 3.0, 3.0, 3, 3.0, 3.0],
-                ["four", 4.0, 4.0, 4, 4.0, 4.0],
-                ["five", 5.0, 5.0, 5, 5.0, 5.0],
+                [1.0, 1.0, 1, 1.0, 1.0],
+                [2.0, 2.0, 2, 2.0, 2.0],
+                [3.0, 3.0, 3, 3.0, 3.0],
+                [4.0, 4.0, 4, 4.0, 4.0],
+                [5.0, 5.0, 5, 5.0, 5.0],
             ],
-            columns=["choice", "cost", "size", "looks", "economy", "power"],
+            columns=["cost", "size", "looks", "economy", "power"],
+            index=pd.Index(["one", "two", "three", "four", "five"], dtype="object", name="choice"),
         )
         # sort the columns in expected alphabetically
         expected = expected.sort_index(axis=1)
-        expected = expected.set_index("choice")
         assert_frame_equal(result, expected)
 
     def test_get_scores(self) -> None:
@@ -137,8 +137,8 @@ class TestDecision(unittest.TestCase):
                 [0.0, 0.0, 0.5, 0.0, 0.5],
             ],
             columns=["cost", "size", "looks", "economy", "power2"],
+            index=pd.Index(["smart", "fun"], dtype="object", name="metric"),
         )
-        expected = expected.set_index(pd.Index(["smart", "fun"], dtype="object"))
         # sort the columns in expected alphabetically
         expected = expected.sort_index(axis=1)
         # sort the rows in expected alphabetically
@@ -156,15 +156,15 @@ class TestDecision(unittest.TestCase):
         result = Decision._get_metric_results(scores, weights)
         expected = pd.DataFrame(
             data=[
-                ["one", 0.4666666666666667, 0.05],
-                ["two", 0.5166666666666667, 0.225],
-                ["three", 0.5, 0.4],
-                ["four", 0.55, 0.575],
-                ["five", 0.5333333333333333, 0.75],
+                [0.4666666666666667, 0.05],
+                [0.5166666666666667, 0.225],
+                [0.5, 0.4],
+                [0.55, 0.575],
+                [0.5333333333333333, 0.75],
             ],
-            columns=["choice", "smart", "fun"],
+            columns=["smart", "fun"],
+            index=pd.Index(["one", "two", "three", "four", "five"], dtype="object", name="choice"),
         )
-        expected = expected.set_index("choice")
         assert_frame_equal(result, expected)
 
     # def test_get_final_weights(self) -> None:
