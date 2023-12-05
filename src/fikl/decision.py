@@ -1,15 +1,26 @@
-from fikl.scorers import LOOKUP as SCORER_LOOKUP
+from fikl.scorers import get_scorer_from_factor
 from fikl.fetchers import LOOKUP as FETCHER_LOOKUP
 from fikl.util import load_yaml
+from fikl.config import load as load_config
+from fikl.config import find_factor
+from fikl.proto import config_pb2
+
 
 from typing import Optional, Any, Dict, List
 import logging
 import pprint
 import os
 import yaml
+from collections import namedtuple
 
 import pandas as pd
 import numpy as np
+
+
+SourceScorer = namedtuple("SourceScorer", ["source", "scorer"])
+SourceScorer.__doc__ = """
+A tuple of a source and a scorer. This is used to store the scorer for each factor for each metric.
+"""
 
 
 class Decision:
@@ -49,7 +60,7 @@ class Decision:
     """
 
     @staticmethod
-    def _get_scorers(config: dict) -> dict[str, dict[str, Any]]:
+    def _get_scorers(config: config_pb2.Config) -> dict[str, dict[str, SourceScorer]]:
         """
         Determine which scorer to use for each factor within each metric. The same factor may
         have different scorers for different metrics.
@@ -70,17 +81,22 @@ class Decision:
                 key: factor name
                 value: Any
         """
-        scorers = {
-            metric: {
-                factor: SCORER_LOOKUP[cfg["scoring"]["type"]](**cfg["scoring"]["config"])
-                for factor, cfg in config["metrics"][metric].items()
-            }
-            for metric in config["metrics"]
-        }
+        scorers = {}
+        for metric in config.metrics:
+            scorers[metric.name] = {}
+            for factor_nw in metric.factors:
+                factor_pb = find_factor(config, factor_nw.name)
+                scorer = get_scorer_from_factor(factor_pb)
+                scorers[metric.name][factor_nw.name] = SourceScorer(
+                    source=factor_pb.source,
+                    scorer=scorer,
+                )
         return scorers
 
     @staticmethod
-    def _get_raw(config: dict, raw_path: str, scorers: dict[str, dict[str, Any]]) -> pd.DataFrame:
+    def _get_raw(
+        config: config_pb2.Config, raw_path: str, scorers: dict[str, dict[str, SourceScorer]]
+    ) -> pd.DataFrame:
         """
         Read the ranking matrix from the csv as a dataframe. The index is the choice name, the columns
         are the factors.
@@ -108,21 +124,19 @@ class Decision:
         # the index is the choice name, the columns are the factors
         raw = pd.read_csv(raw_path, index_col="choice")
 
-        # dict of factors for each metric
-        # key: metric name
-        # value: list of factor names
-        factors = {metric: list(config["metrics"][metric].keys()) for metric in config["metrics"]}
-        logger.debug("factors: {}".format(pprint.pformat(factors)))
-        all_factors = set([factor for metric in factors for factor in factors[metric]])
-        logger.debug("all_factors: {}".format(pprint.pformat(all_factors)))
+        # set of all requested sources from the config
+        req_sources = set([factor.source for factor in config.factors])
+        logger.debug("requested sources: {}".format(pprint.pformat(req_sources)))
+        logger.debug("available CSV columns: {}".format(pprint.pformat(raw.columns)))
+        logger.debug("avalable fetcher sources: {}".format(pprint.pformat(FETCHER_LOOKUP.keys())))
 
         # any factor that is not a column in the raw data already will need to be fetched
         fetchers = {
-            factor: FETCHER_LOOKUP[factor]() for factor in all_factors if factor not in raw.columns
+            source: FETCHER_LOOKUP[source]() for source in req_sources if source not in raw.columns
         }
         logger.debug("fetchers: {}".format(pprint.pformat(fetchers)))
-        for factor, fetcher in fetchers.items():
-            raw[factor] = fetcher.fetch(list(raw.index))
+        for source, fetcher in fetchers.items():
+            raw[source] = fetcher.fetch(list(raw.index))
 
         # allow the user to input executable code in the csv. eval it here.
         # FIXME: this is deeply unsafe. need to find a better way to do this.
@@ -132,13 +146,15 @@ class Decision:
         # make sure that the dtype is correct. if not, try to cast it to the correct type and log a
         # warning.
         for metric, metric_scorers in scorers.items():
-            for factor, factor_scorer in metric_scorers.items():
-                dtype = factor_scorer.DTYPE
-                if not raw[factor].dtype == dtype:
-                    logging.warning(
-                        f"factor {factor} has dtype {raw[factor].dtype} but scorer {factor_scorer} requires dtype {dtype}, casting to {dtype}"
+            for factor_name, (source, scorer) in metric_scorers.items():
+                have_dtype = raw[source].dtype
+                req_dtype = scorer.DTYPE
+                if have_dtype != req_dtype:
+                    logger.warning(
+                        f"factor {factor_name} for metric {metric} has dtype {have_dtype} "
+                        f"but requires dtype {req_dtype}. attempting to cast."
                     )
-                    raw[factor] = raw[factor].astype(dtype)
+                    raw[source] = raw[source].astype(req_dtype)
 
         # now that the table is complete, sort the columns alphabetically
         raw = raw.reindex(sorted(raw.columns), axis=1)
@@ -186,7 +202,7 @@ class Decision:
         return scores
 
     @staticmethod
-    def _get_metric_weights(config: dict, raw: pd.DataFrame) -> pd.DataFrame:
+    def _get_metric_weights(config: config_pb2.Config, raw: pd.DataFrame) -> pd.DataFrame:
         """
         Generate the metric weights dataframe, which is necessary to compute results from the scores.
         The index is the metric name, the columns are the factors.
@@ -220,7 +236,7 @@ class Decision:
         return weights
 
     @staticmethod
-    def _get_final_weights(config: dict, metrics: list[str]) -> pd.Series:
+    def _get_final_weights(config: config_pb2.Config, metrics: list[str]) -> pd.Series:
         """
         Generate the final weights for each metric. The index is the metric name, the values are
         floats between 0 and 1. This is used for computing the final results from the metric results.

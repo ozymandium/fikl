@@ -22,24 +22,23 @@ class TestLoad(unittest.TestCase):
     def test_load(self) -> None:
         config = fikl.config.load(self.CONFIG)
         self.assertEqual(len(config.factors), 5)
-        
+
         self.assertEqual(
             [config.factors[i].name for i in range(len(config.factors))],
             ["cost", "size", "looks", "economy", "power2"],
         )
-        
+
         self.assertEqual(
             [config.factors[i].source for i in range(len(config.factors))],
             ["cost", "size", "looks", "economy", "power"],
         )
-        
+
         self.assertEqual(config.factors[0].doc, "This is a comment\n")
         self.assertEqual(config.factors[1].doc, "")
 
         # scoring
         self.assertEqual(
-            config.factors[0].scoring.relative, 
-            config_pb2.RelativeScorerConfig(invert=True)
+            config.factors[0].scoring.relative, config_pb2.RelativeScorerConfig(invert=True)
         )
         self.assertEqual(
             config.factors[1].scoring.interpolate,
@@ -81,7 +80,7 @@ class TestLoad(unittest.TestCase):
                 config_pb2.NameWeight(name="cost", weight=1.0),
                 config_pb2.NameWeight(name="size", weight=1.0),
                 config_pb2.NameWeight(name="economy", weight=1.0),
-            ]
+            ],
         )
         self.assertEqual(config.metrics[1].name, "fun")
         self.assertEqual(
@@ -89,11 +88,10 @@ class TestLoad(unittest.TestCase):
             [
                 config_pb2.NameWeight(name="looks", weight=1.0),
                 config_pb2.NameWeight(name="power2", weight=1.0),
-            ]
+            ],
         )
 
         # final
         self.assertEqual(len(config.final), 2)
         self.assertEqual(config.final[0], config_pb2.NameWeight(name="smart", weight=0.67))
         self.assertEqual(config.final[1], config_pb2.NameWeight(name="fun", weight=0.33))
-        
