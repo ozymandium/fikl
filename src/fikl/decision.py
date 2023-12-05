@@ -363,7 +363,64 @@ class Decision:
         final_results = final_results.sort_values(ascending=False)
         return final_results
 
-    def __init__(self, config_path: str, raw_path: str):
+    @staticmethod
+    def _get_factor_docs(config: config_pb2.Config) -> dict[str, dict[str, str]]:
+        """
+        Get the documentation for each factor for each metric.
+
+        Parameters
+        ----------
+        config : dict
+            dict of config values
+
+        Returns
+        -------
+        dict[str, dict[str, str]]
+            dict of docs for each factor for each metric
+            key: metric name
+            value: dict of docs for each factor
+                key: factor name
+                value: str
+        """
+        factor_docs = {}
+        for metric_pb in config.metrics:
+            factor_docs[metric_pb.name] = {}
+            for factor_nw in metric_pb.factors:
+                factor_pb = find_factor(config, factor_nw.name)
+                factor_docs[metric_pb.name][factor_nw.name] = factor_pb.doc
+        return factor_docs
+
+    @staticmethod
+    def _get_scorer_docs(scorers: dict[str, dict[str, SourceScorer]]) -> dict[str, dict[str, str]]:
+        """
+        Get the documentation for each scorer for each metric.
+
+        Parameters
+        ----------
+        scorers : dict[str, dict[str, SourceScorer]]
+            dict of scorers for each metric
+            key: metric name
+            value: dict of scorers for each factor
+                key: factor name
+                value: SourceScorer
+
+        Returns
+        -------
+        dict[str, dict[str, str]]
+            dict of docs for each scorer for each metric
+            key: metric name
+            value: dict of docs for each scorer
+                key: factor name
+                value: str
+        """
+        scorer_docs = {}
+        for metric, metric_scorers in scorers.items():
+            scorer_docs[metric] = {}
+            for factor_name, (source, scorer) in metric_scorers.items():
+                scorer_docs[metric][factor_name] = scorer.doc()
+        return scorer_docs
+
+    def __init__(self, config: config_pb2, raw_path: str):
         """
         Parameters
         ----------
@@ -378,11 +435,6 @@ class Decision:
         """
         logger = logging.getLogger()
 
-        # read the config yaml
-        with open(config_path, "r") as f:
-            config = load_yaml(f)
-        logger.debug("config:\n{}".format(yaml.dump(config)))
-
         scorers = self._get_scorers(config)
         logger.debug("scorers:\n{}".format(pprint.pformat(scorers)))
 
@@ -394,7 +446,7 @@ class Decision:
         for metric, scores in self.scores.items():
             logger.debug(f"{metric}:\n{scores}")
 
-        self.metric_weights = self._get_metric_weights(config, self.raw)
+        self.metric_weights = self._get_metric_weights(config)
         logger.debug("Weights:\n{}".format(pprint.pformat(self.metric_weights)))
 
         # generate the results table
@@ -402,25 +454,14 @@ class Decision:
         logger.debug("Results:\n{}".format(pprint.pformat(self.metric_results)))
 
         # generate the final weights
-        self.final_weights = self._get_final_weights(config, self.metrics())
+        self.final_weights = self._get_final_weights(config)
 
         # generate the final results
         self.final_results = self._get_final_results(self.metric_results, self.final_weights)
 
         # store docs for each factor and scorer
-        self.factor_docs = {
-            metric: {
-                factor: config["metrics"][metric][factor]["scoring"]["doc"]
-                if "doc" in config["metrics"][metric][factor]["scoring"]
-                else "\n"
-                for factor in config["metrics"][metric]
-            }
-            for metric in config["metrics"]
-        }
-        self.scorer_docs = {
-            metric: {factor: scorers[metric][factor].doc() for factor in scorers[metric]}
-            for metric in scorers
-        }
+        self.factor_docs = self._get_factor_docs(config)
+        self.scorer_docs = self._get_scorer_docs(scorers)
 
     def choices(self) -> list[str]:
         """

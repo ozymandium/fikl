@@ -183,20 +183,13 @@ class TestDecision(unittest.TestCase):
         expected = expected.sort_index(axis=0)
         assert_series_equal(final_weights, expected)
 
-    # def test_ctor(self) -> None:
-    #     decision = Decision(config_path=self.CONFIG_PATH, raw_path=self.RAW)
-    #     expected = pd.DataFrame(
-    #         data=[
-    #             ["one", 0.4666666666666667, 0.05],
-    #             ["two", 0.5166666666666667, 0.225],
-    #             ["three", 0.5, 0.4],
-    #             ["four", 0.55, 0.575],
-    #             ["five", 0.5333333333333333, 0.75],
-    #         ],
-    #         columns=["choice", "smart", "fun"],
-    #     )
-    #     expected = expected.set_index("choice")
-    #     assert_frame_equal(decision.metric_results, expected)
+    def test_ctor(self) -> None:
+        decision = Decision(config=load_config(self.CONFIG_PATH), raw_path=self.RAW)
+        expected_final_results = pd.Series(
+            data=[0.604833, 0.558250, 0.467000, 0.420417, 0.329167],
+            index=pd.Index(["five", "four", "three", "two", "one"], dtype="object", name="choice"),
+        )
+        assert_series_equal(decision.final_results, expected_final_results)
 
     # def test_getters(self) -> None:
     #     decision = Decision(config_path=self.CONFIG_PATH, raw_path=self.RAW)
