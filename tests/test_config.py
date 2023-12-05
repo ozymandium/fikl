@@ -9,60 +9,91 @@ import json
 import yaml
 
 import fikl.config
+from fikl.proto import config_pb2
 
 
-class TestParse(unittest.TestCase):
+class TestLoad(unittest.TestCase):
     CONFIG = os.path.join(os.path.dirname(__file__), "data", "simple.yaml")
-
-    # def compare_lists(self, l1: list, l2: list) -> None:
-    #     self.assertEqual(len(l1), len(l2))
-    #     for i in range(len(l1)):
-    #         if isinstance(l1[i], dict):
-    #             self.compare_dicts(l1[i], l2[i])
-    #         elif isinstance(l1[i], float):
-    #             self.assertAlmostEqual(l1[i], l2[i], places=3)
-    #         elif isinstance(l1[i], int):
-    #             self.assertAlmostEqual(float(l1[i]), float(l2[i]), places=3)
-    #         else:
-    #             self.assertEqual(l1[i], l2[i])
-
-    # def compare_dicts(self, d1: dict, d2: dict) -> None:
-    #     """round tripping yaml to json to binary to json to yaml sometimes results in floats being
-    #     stored as ints or losing some precision, so we need to compare the yaml files by loading them
-    #     and individually compare the fields and values (not the types). any numerical values need to
-    #     be compared with some tolerance.
-    #     """
-    #     for k, v in d1.items():
-    #         print(k, v)
-    #         self.assertTrue(k in d2)
-    #         if isinstance(v, dict):
-    #             self.compare_dicts(v, d2[k])
-    #         elif isinstance(v, float):
-    #             self.assertAlmostEqual(v, d2[k], places=3)
-    #         elif isinstance(v, int):
-    #             self.assertAlmostEqual(float(v), float(d2[k]), places=3)
-    #         elif isinstance(v, list):
-    #             self.compare_lists(v, d2[k])
-    #         else:
-    #             self.assertEqual(v, d2[k])
 
     def setUp(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.maxDiff = None
 
-    def test_parse(self) -> None:
+    def test_load(self) -> None:
         config = fikl.config.load(self.CONFIG)
         self.assertEqual(len(config.factors), 5)
+        
         self.assertEqual(
             [config.factors[i].name for i in range(len(config.factors))],
-            ["cost", "size", "looks", "economy", "power"],
+            ["cost", "size", "looks", "economy", "power2"],
         )
+        
         self.assertEqual(
             [config.factors[i].source for i in range(len(config.factors))],
             ["cost", "size", "looks", "economy", "power"],
         )
-        # for i in range(len(config.factors)):
-        #     scoring = config.factors[i].scoring
-        #     self.assertEqual(type(scoring).__name__, "Scoring")
-        #     scorer_code = scoring.WhichOneOf("config")
-        #     scorer_config = getattr(config.factors[i].scoring, scorer_code)
+        
+        self.assertEqual(config.factors[0].doc, "This is a comment\n")
+        self.assertEqual(config.factors[1].doc, "")
+
+        # scoring
+        self.assertEqual(
+            config.factors[0].scoring.relative, 
+            config_pb2.RelativeScorerConfig(invert=True)
+        )
+        self.assertEqual(
+            config.factors[1].scoring.interpolate,
+            config_pb2.InterpolateScorerConfig(
+                knots=[
+                    config_pb2.InterpolateScorerConfig.Knot(**{"in": 0.0, "out": 0.0}),
+                    config_pb2.InterpolateScorerConfig.Knot(**{"in": 5.0, "out": 1.0}),
+                    config_pb2.InterpolateScorerConfig.Knot(**{"in": 10.0, "out": 0.0}),
+                ]
+            ),
+        )
+        self.assertEqual(
+            config.factors[2].scoring.star,
+            config_pb2.StarScorerConfig(min=1, max=5),
+        )
+        self.assertEqual(
+            config.factors[3].scoring.bucket,
+            config_pb2.BucketScorerConfig(
+                buckets=[
+                    config_pb2.BucketScorerConfig.Bucket(min=0, max=2, val=0.2),
+                    config_pb2.BucketScorerConfig.Bucket(min=2, max=4, val=0.4),
+                    config_pb2.BucketScorerConfig.Bucket(min=4, max=6, val=0.6),
+                    config_pb2.BucketScorerConfig.Bucket(min=6, max=8, val=0.8),
+                    config_pb2.BucketScorerConfig.Bucket(min=8, max=10, val=1.0),
+                ]
+            ),
+        )
+        self.assertEqual(
+            config.factors[4].scoring.range,
+            config_pb2.RangeScorerConfig(best=10, worst=0),
+        )
+
+        # metrics
+        self.assertEqual(len(config.metrics), 2)
+        self.assertEqual(config.metrics[0].name, "smart")
+        self.assertEqual(
+            config.metrics[0].factors,
+            [
+                config_pb2.NameWeight(name="cost", weight=1.0),
+                config_pb2.NameWeight(name="size", weight=1.0),
+                config_pb2.NameWeight(name="economy", weight=1.0),
+            ]
+        )
+        self.assertEqual(config.metrics[1].name, "fun")
+        self.assertEqual(
+            config.metrics[1].factors,
+            [
+                config_pb2.NameWeight(name="looks", weight=1.0),
+                config_pb2.NameWeight(name="power2", weight=1.0),
+            ]
+        )
+
+        # final
+        self.assertEqual(len(config.final), 2)
+        self.assertEqual(config.final[0], config_pb2.NameWeight(name="smart", weight=0.67))
+        self.assertEqual(config.final[1], config_pb2.NameWeight(name="fun", weight=0.33))
+        

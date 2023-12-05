@@ -4,6 +4,8 @@ factors:
         scoring:
             relative:
                 invert: true
+        doc: |
+            This is a comment
     -   name: size
         source: size
         scoring:
@@ -28,7 +30,7 @@ factors:
                     - {min: 4.0, max: 6.0, val: 0.6}
                     - {min: 6.0, max: 8.0, val: 0.8}
                     - {min: 8.0, max: 10.0, val: 1.0}
-    -   name: power
+    -   name: power2
         source: power
         scoring:
             range:
@@ -43,7 +45,7 @@ metrics:
     -   name: fun
         factors:
             - {name: looks, weight: 1.0}
-            - {name: power, weight: 1.0}
+            - {name: power2, weight: 1.0}
 final:
     - {name: smart, weight: 0.67}
     - {name: fun, weight: 0.33}
