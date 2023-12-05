@@ -167,21 +167,21 @@ class TestDecision(unittest.TestCase):
         )
         assert_frame_equal(result, expected)
 
-    # def test_get_final_weights(self) -> None:
-    #     config = load_config(self.CONFIG_PATH)
-    #     scorers = Decision._get_scorers(config)
-    #     raw = Decision._get_raw(config, self.RAW, scorers)
-    #     scores = Decision._get_scores(raw, scorers)
-    #     weights = Decision._get_metric_weights(config, raw)
-    #     results = Decision._get_metric_results(scores, weights)
-    #     final_weights = Decision._get_final_weights(config, results)
-    #     expected = pd.Series(
-    #         data=[0.67, 0.33],
-    #         index=["smart", "fun"],
-    #     )
-    #     # sort the rows in expected alphabetically
-    #     expected = expected.sort_index(axis=0)
-    #     assert_series_equal(final_weights, expected)
+    def test_get_final_weights(self) -> None:
+        config = load_config(self.CONFIG_PATH)
+        scorers = Decision._get_scorers(config)
+        raw = Decision._get_raw(config, self.RAW, scorers)
+        scores = Decision._get_scores(raw, scorers)
+        weights = Decision._get_metric_weights(config)
+        results = Decision._get_metric_results(scores, weights)
+        final_weights = Decision._get_final_weights(config)
+        expected = pd.Series(
+            data=[0.67, 0.33],
+            index=pd.Index(["smart", "fun"], dtype="object", name="metric"),
+        )
+        # sort the rows in expected alphabetically
+        expected = expected.sort_index(axis=0)
+        assert_series_equal(final_weights, expected)
 
     # def test_ctor(self) -> None:
     #     decision = Decision(config_path=self.CONFIG_PATH, raw_path=self.RAW)

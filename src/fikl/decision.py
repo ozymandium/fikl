@@ -243,7 +243,7 @@ class Decision:
         return weights
 
     @staticmethod
-    def _get_final_weights(config: config_pb2.Config, metrics: list[str]) -> pd.Series:
+    def _get_final_weights(config: config_pb2.Config) -> pd.Series:
         """
         Generate the final weights for each metric. The index is the metric name, the values are
         floats between 0 and 1. This is used for computing the final results from the metric results.
@@ -252,8 +252,6 @@ class Decision:
         ----------
         config : dict
             dict of config values
-        metrics : list[str]
-            list of metric names
 
         Returns
         -------
@@ -261,16 +259,11 @@ class Decision:
             the final weights for each metric. the index is the metric name, the values are floats
             between 0 and 1.
         """
-        # ensure that the final weights include all metrics
-        if set(config["final"].keys()).symmetric_difference(set(metrics)):
-            raise ValueError(
-                "final weights do not include all metrics:\n"
-                f"weights: {set(config['final'].keys())}\n"
-                f"metrics: {metrics}"
-            )
         weights = pd.Series(
-            data=[config["final"][metric] for metric in metrics],
-            index=list(metrics),
+            data=[metric_nw.weight for metric_nw in config.final],
+            index=pd.Index(
+                [metric_nw.name for metric_nw in config.final], name="metric", dtype="object"
+            ),
         )
         # normalize the weights
         weights = weights.div(weights.sum())
