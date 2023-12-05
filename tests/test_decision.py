@@ -191,14 +191,14 @@ class TestDecision(unittest.TestCase):
         )
         assert_series_equal(decision.final_results, expected_final_results)
 
-    # def test_getters(self) -> None:
-    #     decision = Decision(config_path=self.CONFIG_PATH, raw_path=self.RAW)
-    #     self.assertEqual(decision.choices(), ["one", "two", "three", "four", "five"])
-    #     self.assertEqual(decision.metrics(), sorted(["smart", "fun"]))
-    #     self.assertEqual(
-    #         decision.all_factors(), sorted(["cost", "size", "looks", "economy", "power"])
-    #     )
-    #     self.assertEqual(
-    #         decision.metric_factors(),
-    #         {"smart": sorted(["cost", "size", "economy"]), "fun": sorted(["looks", "power"])},
-    #     )
+    def test_getters(self) -> None:
+        decision = Decision(config=load_config(self.CONFIG_PATH), raw_path=self.RAW)
+        self.assertEqual(decision.choices(), ["one", "two", "three", "four", "five"])
+        self.assertEqual(decision.metrics(), sorted(["smart", "fun"]))
+        self.assertEqual(
+            decision.all_factors(), sorted(["cost", "size", "looks", "economy", "power2"])
+        )
+        self.assertEqual(
+            decision.metric_factors(),
+            {"smart": sorted(["cost", "size", "economy"]), "fun": sorted(["looks", "power2"])},
+        )
