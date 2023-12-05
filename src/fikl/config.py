@@ -54,3 +54,4 @@ def find_factor(config: config_pb2.Config, name: str) -> config_pb2.Factor:
     if len(matching) != 1:
         raise ValueError(f"Could not find unique factor with name {name}")
     return matching[0]
+

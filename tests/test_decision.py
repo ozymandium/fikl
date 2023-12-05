@@ -4,6 +4,7 @@ Unit tests for fikl.decision.Decision, located in src/fikl/decision.py
 import unittest
 import os
 import yaml
+import pprint
 
 from fikl.decision import Decision, SourceScorer
 import fikl.scorers
@@ -89,41 +90,41 @@ class TestDecision(unittest.TestCase):
         expected = expected.set_index("choice")
         assert_frame_equal(result, expected)
 
-    # def test_get_scores(self) -> None:
-    #     config = load_config(self.CONFIG_PATH)
-    #     raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
-    #     scorers = Decision._get_scorers(config)
-    #     result = Decision._get_scores(raw, scorers)
-    #     expected = {
-    #         "smart": pd.DataFrame(
-    #             data=[
-    #                 ["one", 1.0, 0.2, 0.0, 0.2, 0.0],
-    #                 ["two", 0.75, 0.4, 0.0, 0.4, 0.0],
-    #                 ["three", 0.5, 0.6, 0.0, 0.4, 0.0],
-    #                 ["four", 0.25, 0.8, 0.0, 0.6, 0.0],
-    #                 ["five", 0.0, 1.0, 0.0, 0.6, 0.0],
-    #             ],
-    #             columns=["choice", "cost", "size", "looks", "economy", "power"],
-    #         ),
-    #         "fun": pd.DataFrame(
-    #             data=[
-    #                 ["one", 0.0, 0.0, 0.0, 0.0, 0.1],
-    #                 ["two", 0.0, 0.0, 0.25, 0.0, 0.2],
-    #                 ["three", 0.0, 0.0, 0.5, 0.0, 0.3],
-    #                 ["four", 0.0, 0.0, 0.75, 0.0, 0.4],
-    #                 ["five", 0.0, 0.0, 1.0, 0.0, 0.5],
-    #             ],
-    #             columns=["choice", "cost", "size", "looks", "economy", "power"],
-    #         ),
-    #     }
-    #     # sort the columns in expected alphabetically
-    #     for key in expected.keys():
-    #         expected[key] = expected[key].sort_index(axis=1)
-    #     expected["smart"] = expected["smart"].set_index("choice")
-    #     expected["fun"] = expected["fun"].set_index("choice")
-    #     self.assertEqual(result.keys(), expected.keys())
-    #     for key in result.keys():
-    #         assert_frame_equal(result[key], expected[key], check_exact=False)
+    def test_get_scores(self) -> None:
+        config = load_config(self.CONFIG_PATH)
+        raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
+        scorers = Decision._get_scorers(config)
+        scores = Decision._get_scores(raw, scorers)
+        expected = {
+            "smart": pd.DataFrame(
+                data=[
+                    ["one", 1.0, 0.2, 0.2],
+                    ["two", 0.75, 0.4, 0.4],
+                    ["three", 0.5, 0.6, 0.4],
+                    ["four", 0.25, 0.8, 0.6],
+                    ["five", 0.0, 1.0, 0.6],
+                ],
+                columns=["choice", "cost", "size", "economy"],
+            ),
+            "fun": pd.DataFrame(
+                data=[
+                    ["one", 0.0, 0.1],
+                    ["two", 0.25, 0.2],
+                    ["three", 0.5, 0.3],
+                    ["four", 0.75, 0.4],
+                    ["five", 1.0, 0.5],
+                ],
+                columns=["choice", "looks", "power2"],
+            ),
+        }
+        # # sort the columns and rows in expected alphabetically
+        # for key in expected.keys():
+        #     expected[key] = expected[key].sort_index(axis=1)
+        #     expected[key] = expected[key].set_index("choice")
+        raise Exception(f"scores:\n{pprint.pformat(scores)}\nexpected:\n{pprint.pformat(expected)}")
+        self.assertEqual(scores.keys(), expected.keys())
+        for key in scores.keys():
+            assert_frame_equal(scores[key], expected[key], check_exact=False)
 
     def test_get_metric_weights(self) -> None:
         config = load_config(self.CONFIG_PATH)

@@ -163,7 +163,7 @@ class Decision:
 
     @staticmethod
     def _get_scores(
-        raw: pd.DataFrame, scorers: dict[str, dict[str, Any]]
+        raw: pd.DataFrame, scorers: dict[str, dict[str, SourceScorer]]
     ) -> dict[str, pd.DataFrame]:
         """
         Generate a score dataframe for each metric. The index is the choice name, the columns are
@@ -190,15 +190,17 @@ class Decision:
             the factors. values are floats between 0 and 1. for columns which are not included in that
             metric, the value is np.nan
         """
-        ZEROS = lambda col: pd.Series(np.zeros(len(col)), index=col.index)
+        ZEROS = lambda factor_col: pd.Series(np.zeros(len(factor_col)), index=factor_col.index)
         scores = {}
-        for metric, metric_scorers in scorers.items():
-            fun = (
-                lambda col: metric_scorers[col.name](col)
-                if col.name in metric_scorers
-                else ZEROS(col)
+        for metric, factor_scorers in scorers.items():
+            factor_names = list(factor_scorers.keys())
+            scores[metric] = pd.DataFrame(
+                data=np.empty((len(raw), len(factor_names))) * np.nan,
+                columns=factor_names,
+                index=raw.index,
             )
-            scores[metric] = raw.apply(fun, axis=0)
+            for factor_name, (source, scorer) in factor_scorers.items():
+                scores[metric][factor_name] = scorer(raw[source])
         return scores
 
     @staticmethod
