@@ -13,7 +13,7 @@ from fikl.proto import config_pb2
 
 
 class TestLoad(unittest.TestCase):
-    CONFIG = os.path.join(os.path.dirname(__file__), "data", "simple.yaml")
+    CONFIG = os.path.join(os.path.dirname(__file__), "data", "simple", "simple.yaml")
 
     def setUp(self) -> None:
         self.logger = logging.getLogger(__name__)

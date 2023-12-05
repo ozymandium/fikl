@@ -17,15 +17,15 @@ import numpy as np
 
 
 class TestDecision(unittest.TestCase):
-    CONFIG_PATH = os.path.join(os.path.dirname(__file__), "data", "simple.yaml")
-    RAW = os.path.join(os.path.dirname(__file__), "data", "simple.csv")
+    CONFIG_PATH = os.path.join(os.path.dirname(__file__), "data", "simple", "simple.yaml")
+    RAW = os.path.join(os.path.dirname(__file__), "data", "simple", "simple.csv")
 
     def setUp(self) -> None:
         self.maxDiff = None
+        self.config = load_config(self.CONFIG_PATH)
 
     def test_get_scorers(self) -> None:
-        config = load_config(self.CONFIG_PATH)
-        scorers = Decision._get_scorers(config)
+        scorers = Decision._get_scorers(self.config)
         expected = {
             "smart": {
                 "cost": SourceScorer(
@@ -73,8 +73,7 @@ class TestDecision(unittest.TestCase):
                 self.assertEqual(scorers[key][subkey], expected[key][subkey])
 
     def test_get_raw(self) -> None:
-        config = load_config(self.CONFIG_PATH)
-        result = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
+        result = Decision._get_raw(self.config, self.RAW, Decision._get_scorers(self.config))
         expected = pd.DataFrame(
             data=[
                 [1.0, 1.0, 1, 1.0, 1.0],
@@ -91,9 +90,8 @@ class TestDecision(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_get_scores(self) -> None:
-        config = load_config(self.CONFIG_PATH)
-        raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
-        scorers = Decision._get_scorers(config)
+        raw = Decision._get_raw(self.config, self.RAW, Decision._get_scorers(self.config))
+        scorers = Decision._get_scorers(self.config)
         scores = Decision._get_scores(raw, scorers)
         expected = {
             "smart": pd.DataFrame(
@@ -128,9 +126,8 @@ class TestDecision(unittest.TestCase):
             assert_frame_equal(scores[key], expected[key], check_exact=False)
 
     def test_get_metric_weights(self) -> None:
-        config = load_config(self.CONFIG_PATH)
-        raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
-        metric_weights = Decision._get_metric_weights(config)
+        raw = Decision._get_raw(self.config, self.RAW, Decision._get_scorers(self.config))
+        metric_weights = Decision._get_metric_weights(self.config)
         expected = pd.DataFrame(
             data=[
                 [1.0 / 3.0, 1.0 / 3.0, 0.0, 1.0 / 3.0, 0.0],
@@ -146,13 +143,12 @@ class TestDecision(unittest.TestCase):
         assert_frame_equal(metric_weights, expected)
 
     def test_get_metric_results(self) -> None:
-        config = load_config(self.CONFIG_PATH)
-        raw = Decision._get_raw(config, self.RAW, Decision._get_scorers(config))
+        raw = Decision._get_raw(self.config, self.RAW, Decision._get_scorers(self.config))
         scores = Decision._get_scores(
             raw,
-            Decision._get_scorers(config),
+            Decision._get_scorers(self.config),
         )
-        weights = Decision._get_metric_weights(config)
+        weights = Decision._get_metric_weights(self.config)
         result = Decision._get_metric_results(scores, weights)
         expected = pd.DataFrame(
             data=[
@@ -168,13 +164,12 @@ class TestDecision(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_get_final_weights(self) -> None:
-        config = load_config(self.CONFIG_PATH)
-        scorers = Decision._get_scorers(config)
-        raw = Decision._get_raw(config, self.RAW, scorers)
+        scorers = Decision._get_scorers(self.config)
+        raw = Decision._get_raw(self.config, self.RAW, scorers)
         scores = Decision._get_scores(raw, scorers)
-        weights = Decision._get_metric_weights(config)
+        weights = Decision._get_metric_weights(self.config)
         results = Decision._get_metric_results(scores, weights)
-        final_weights = Decision._get_final_weights(config)
+        final_weights = Decision._get_final_weights(self.config)
         expected = pd.Series(
             data=[0.67, 0.33],
             index=pd.Index(["smart", "fun"], dtype="object", name="metric"),
@@ -184,7 +179,7 @@ class TestDecision(unittest.TestCase):
         assert_series_equal(final_weights, expected)
 
     def test_ctor(self) -> None:
-        decision = Decision(config=load_config(self.CONFIG_PATH), raw_path=self.RAW)
+        decision = Decision(config=self.config, raw_path=self.RAW)
         expected_final_results = pd.Series(
             data=[0.604833, 0.558250, 0.467000, 0.420417, 0.329167],
             index=pd.Index(["five", "four", "three", "two", "one"], dtype="object", name="choice"),
@@ -192,7 +187,7 @@ class TestDecision(unittest.TestCase):
         assert_series_equal(decision.final_results, expected_final_results)
 
     def test_getters(self) -> None:
-        decision = Decision(config=load_config(self.CONFIG_PATH), raw_path=self.RAW)
+        decision = Decision(config=self.config, raw_path=self.RAW)
         self.assertEqual(decision.choices(), ["one", "two", "three", "four", "five"])
         self.assertEqual(decision.metrics(), sorted(["smart", "fun"]))
         self.assertEqual(
