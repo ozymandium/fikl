@@ -5,7 +5,8 @@ import unittest
 import pandas as pd
 import numpy as np
 
-from fikl.scorers import Star, Bucket, Relative, Interpolate, Range
+from fikl.scorers import Star, Bucket, Relative, Interpolate, Range, get_scorer_from_factor
+from fikl.proto import config_pb2
 
 
 class TestStar(unittest.TestCase):
@@ -322,3 +323,106 @@ class TestRange(unittest.TestCase):
         """
         self.assertEqual(Range(worst=0.0, best=100.0), Range(worst=0.0, best=100.0))
         self.assertNotEqual(Range(worst=0.0, best=100.0), Range(worst=100.0, best=0.0))
+
+
+class TestGetScorerFromFactor(unittest.TestCase):
+    def test_star(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "star".
+        """
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(star=config_pb2.StarScorerConfig(min=1, max=5)),
+        )
+        scorer = get_scorer_from_factor(factor)
+        self.assertEqual(scorer, Star(min=1, max=5))
+
+    def test_bucket(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "bucket".
+        """
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(
+                bucket=config_pb2.BucketScorerConfig(
+                    buckets=[
+                        config_pb2.BucketScorerConfig.Bucket(min=0.0, max=1.0, val=0.2),
+                        config_pb2.BucketScorerConfig.Bucket(min=1.0, max=2.0, val=0.4),
+                        config_pb2.BucketScorerConfig.Bucket(min=2.0, max=3.0, val=0.6),
+                        config_pb2.BucketScorerConfig.Bucket(min=3.0, max=4.0, val=0.8),
+                        config_pb2.BucketScorerConfig.Bucket(min=4.0, max=5.0, val=1.0),
+                    ]
+                )
+            ),
+        )
+        scorer = get_scorer_from_factor(factor)
+        expected = Bucket(
+            [
+                {"min": 0.0, "max": 1.0, "val": 0.2},
+                {"min": 1.0, "max": 2.0, "val": 0.4},
+                {"min": 2.0, "max": 3.0, "val": 0.6},
+                {"min": 3.0, "max": 4.0, "val": 0.8},
+                {"min": 4.0, "max": 5.0, "val": 1.0},
+            ]
+        )
+        self.assertEqual(scorer, expected)
+
+    def test_relative(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "relative".
+        """
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(relative=config_pb2.RelativeScorerConfig(invert=False)),
+        )
+        scorer = get_scorer_from_factor(factor)
+        self.assertEqual(scorer, Relative(invert=False))
+
+    def test_interpolate(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "interpolate".
+
+        FIXME: stop using "in" as a variable name
+        """
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(
+                interpolate=config_pb2.InterpolateScorerConfig(
+                    knots=[
+                        config_pb2.InterpolateScorerConfig.Knot(**{"in": -1.0, "out": 0.0}),
+                        config_pb2.InterpolateScorerConfig.Knot(**{"in": 0.0, "out": 1.0}),
+                        config_pb2.InterpolateScorerConfig.Knot(**{"in": 1.0, "out": 0.0}),
+                    ]
+                )
+            ),
+        )
+        scorer = get_scorer_from_factor(factor)
+        expected = Interpolate(
+            [
+                {"in": -1.0, "out": 0.0},
+                {"in": 0.0, "out": 1.0},
+                {"in": 1.0, "out": 0.0},
+            ]
+        )
+        self.assertEqual(scorer, expected)
+
+    def test_range(self) -> None:
+        """
+        Test that the get_scorer_from_factor function returns the correct scorer when the factor is
+        "range".
+        """
+        factor = config_pb2.Factor(
+            name="",
+            source="",
+            scoring=config_pb2.Scoring(range=config_pb2.RangeScorerConfig(worst=0.0, best=100.0)),
+        )
+        scorer = get_scorer_from_factor(factor)
+        self.assertEqual(scorer, Range(worst=0.0, best=100.0))

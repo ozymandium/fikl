@@ -1,0 +1,72 @@
+syntax = "proto2";
+
+message StarScorerConfig {
+    required int32 min = 1;
+    required int32 max = 2;
+}
+
+message BucketScorerConfig {
+    message Bucket {
+        required float min = 1;
+        required float max = 2;
+        required float val = 3;
+    }
+    repeated Bucket buckets = 1;
+}
+
+message RelativeScorerConfig {
+    required bool invert = 1;
+}
+
+message InterpolateScorerConfig {
+    message Knot {
+        required float in = 1;
+        required float out = 2;    
+    }
+    repeated Knot knots = 1;    
+}
+
+message RangeScorerConfig {
+    required float best = 1;
+    required float worst = 2;
+}
+
+message Scoring {
+    oneof config {
+        StarScorerConfig star = 1;
+        BucketScorerConfig bucket = 2;
+        RelativeScorerConfig relative = 3;
+        InterpolateScorerConfig interpolate = 4;
+        RangeScorerConfig range = 5;
+    }
+}
+
+message Factor {
+    // name of the factor, which will be used to refer to it in metrics
+    required string name = 1;
+    // source of the factor, which will be used to retrieve it from either the user-provided CSV,
+    // or from a fetcher.
+    required string source = 2;
+    required Scoring scoring = 3;
+    optional string doc = 4;
+}
+
+message NameWeight {
+    // refers to the `name` field of a Factor or Metric, as appropriate
+    required string name = 1;
+    // will be normalized later
+    required float weight = 2;
+}
+
+message Metric {
+    // will be referred to by the `name` field of a NameWeight in `final`
+    required string name = 1;
+    repeated NameWeight factors = 2;
+}
+
+message Config {
+    repeated Factor factors = 1;
+    repeated Metric metrics = 2;
+    // list of metric names and weights to use for computing the final score
+    repeated NameWeight final = 3;
+}

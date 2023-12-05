@@ -317,12 +317,10 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     scores_tables = {}
     for metric in decision.metrics():
         df = decision.scores[metric].copy()
-        # a factor is ignored for this metric if the value for this metric row and this factor
-        # column in the weights table is 0
+        # a factor is ignored for this metric if it does not appear in the metric weights table
+        # as a column for this metric
         ignored_factors = [
-            factor
-            for factor in decision.all_factors()
-            if decision.metric_weights.loc[metric, factor] == 0.0
+            factor for factor in decision.all_factors() if factor not in decision.metric_weights
         ]
         df = df.drop(columns=ignored_factors)
         scores_tables[metric] = _table_to_html(df, color_score=True, percent=True)

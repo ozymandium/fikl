@@ -20,6 +20,7 @@ TODO:
 - each scorer only ever gets used once. as such, they don't have to be as robust as they are. 
 """
 from fikl.util import ensure_type
+from fikl.proto import config_pb2
 
 import logging
 from collections import namedtuple
@@ -28,6 +29,7 @@ from inspect import cleandoc
 
 import pandas as pd
 import numpy as np
+from google.protobuf.json_format import MessageToDict
 
 
 class Star:
@@ -137,6 +139,9 @@ class Bucket:
             if not isinstance(other, Bucket.Pail):
                 return False
             return self.min == other.min and self.max == other.max and self.val == other.val
+
+        def __repr__(self) -> str:
+            return f"Bucket.Pail(min={self.min}, max={self.max}, val={self.val})"
 
     def __init__(self, buckets: List[Dict[str, float]]):
         """
@@ -392,13 +397,28 @@ class Range(Interpolate):
             """
 
 
-LOOKUP = {
-    scorer.CODE: scorer  # type: ignore
-    for scorer in [
-        Star,
-        Bucket,
-        Relative,
-        Interpolate,
-        Range,
-    ]
-}
+_SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range]
+_LOOKUP = {scorer_type.CODE: scorer_type for scorer_type in _SCORER_TYPES}
+
+
+def get_scorer_from_factor(factor: config_pb2.Factor) -> Any:
+    """Given a factor, return the scorer that it specifies.
+
+    Parameters
+    ----------
+    factor : config_pb2.Factor
+        Factor to get scorer for
+
+    Returns
+    -------
+    Any
+        A scorer object
+    """
+    which = factor.scoring.WhichOneof("config")
+    if which is None:
+        raise ValueError("factor {} does not specify a scorer".format(factor))
+    scorer_type = _LOOKUP[which]
+    assert which == scorer_type.CODE
+    scorer_config = getattr(factor.scoring, which)
+    scorer_config_dict = MessageToDict(scorer_config)
+    return scorer_type(**scorer_config_dict)

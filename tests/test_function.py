@@ -4,6 +4,7 @@ import unittest
 
 from fikl.decision import Decision
 from fikl.html import report
+from fikl.config import load as load_config
 
 
 class TestFunction(unittest.TestCase):
@@ -23,6 +24,6 @@ class TestFunction(unittest.TestCase):
         for config, raw in zip(configs, raws):
             config_path = os.path.join(data_dir, config)
             raw_path = os.path.join(data_dir, raw)
-            decision = Decision(config_path=config_path, raw_path=raw_path)
+            decision = Decision(config=load_config(config_path), raw_path=raw_path)
             html = report(decision)
             # TODO: check that the html is valid

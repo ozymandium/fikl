@@ -1,13 +1,13 @@
-County Politics: &County_Politics_scoring
-    type: range
-    config:
-        best: 0.0
-        worst: 100.0
-    doc: |
-        Margin of victory for the candidate that won the county in the 2020 presidential election,
-        according to [MIT](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ).
+factors:
+    -   name: margin
+        source: County Politics
+        scoring: {range: {best: 0.0, worst: 100.0}}
+        doc: |
+            Margin of victory for the candidate that won the county in the 2020 presidential election,
+            according to [MIT](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ).
 metrics:
-    main:
-        County Politics: {scoring: *County_Politics_scoring, weight: 1.0}
+    -   name: main
+        factors:
+            - {name: margin, weight: 1.0}
 final:
-    main: 1.0
+    -   {name: main, weight: 1.0}

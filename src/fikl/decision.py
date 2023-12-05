@@ -1,15 +1,26 @@
-from fikl.scorers import LOOKUP as SCORER_LOOKUP
+from fikl.scorers import get_scorer_from_factor
 from fikl.fetchers import LOOKUP as FETCHER_LOOKUP
 from fikl.util import load_yaml
+from fikl.config import load as load_config
+from fikl.config import find_factor
+from fikl.proto import config_pb2
+
 
 from typing import Optional, Any, Dict, List
 import logging
 import pprint
 import os
 import yaml
+from collections import namedtuple
 
 import pandas as pd
 import numpy as np
+
+
+SourceScorer = namedtuple("SourceScorer", ["source", "scorer"])
+SourceScorer.__doc__ = """
+A tuple of a source and a scorer. This is used to store the scorer for each factor for each metric.
+"""
 
 
 class Decision:
@@ -28,8 +39,8 @@ class Decision:
         scores for each metric.
         key: the name of the metric
         value: dataframe with the the ranking matrix. the index is the choice name, the columns are
-        the factors. values are floats between 0 and 1. for columns which are not included in that
-        metric, the value is np.nan
+        the factors. values are floats between 0 and 1. columns which are not included in that
+        metric are no longer included in the dataframe.
     weights : pd.DataFrame
         the weights for each factor for each metric. the index is the metric name, the columns are
         the factors. the "All" metric is automatically added which includes all factors
@@ -49,7 +60,7 @@ class Decision:
     """
 
     @staticmethod
-    def _get_scorers(config: dict) -> dict[str, dict[str, Any]]:
+    def _get_scorers(config: config_pb2.Config) -> dict[str, dict[str, SourceScorer]]:
         """
         Determine which scorer to use for each factor within each metric. The same factor may
         have different scorers for different metrics.
@@ -70,17 +81,22 @@ class Decision:
                 key: factor name
                 value: Any
         """
-        scorers = {
-            metric: {
-                factor: SCORER_LOOKUP[cfg["scoring"]["type"]](**cfg["scoring"]["config"])
-                for factor, cfg in config["metrics"][metric].items()
-            }
-            for metric in config["metrics"]
-        }
+        scorers = {}
+        for metric in config.metrics:
+            scorers[metric.name] = {}
+            for factor_nw in metric.factors:
+                factor_pb = find_factor(config, factor_nw.name)
+                scorer = get_scorer_from_factor(factor_pb)
+                scorers[metric.name][factor_nw.name] = SourceScorer(
+                    source=factor_pb.source,
+                    scorer=scorer,
+                )
         return scorers
 
     @staticmethod
-    def _get_raw(config: dict, raw_path: str, scorers: dict[str, dict[str, Any]]) -> pd.DataFrame:
+    def _get_raw(
+        config: config_pb2.Config, raw_path: str, scorers: dict[str, dict[str, SourceScorer]]
+    ) -> pd.DataFrame:
         """
         Read the ranking matrix from the csv as a dataframe. The index is the choice name, the columns
         are the factors.
@@ -108,21 +124,19 @@ class Decision:
         # the index is the choice name, the columns are the factors
         raw = pd.read_csv(raw_path, index_col="choice")
 
-        # dict of factors for each metric
-        # key: metric name
-        # value: list of factor names
-        factors = {metric: list(config["metrics"][metric].keys()) for metric in config["metrics"]}
-        logger.debug("factors: {}".format(pprint.pformat(factors)))
-        all_factors = set([factor for metric in factors for factor in factors[metric]])
-        logger.debug("all_factors: {}".format(pprint.pformat(all_factors)))
+        # set of all requested sources from the config
+        req_sources = set([factor.source for factor in config.factors])
+        logger.debug("requested sources: {}".format(pprint.pformat(req_sources)))
+        logger.debug("available CSV columns: {}".format(pprint.pformat(raw.columns)))
+        logger.debug("avalable fetcher sources: {}".format(pprint.pformat(FETCHER_LOOKUP.keys())))
 
         # any factor that is not a column in the raw data already will need to be fetched
         fetchers = {
-            factor: FETCHER_LOOKUP[factor]() for factor in all_factors if factor not in raw.columns
+            source: FETCHER_LOOKUP[source]() for source in req_sources if source not in raw.columns
         }
         logger.debug("fetchers: {}".format(pprint.pformat(fetchers)))
-        for factor, fetcher in fetchers.items():
-            raw[factor] = fetcher.fetch(list(raw.index))
+        for source, fetcher in fetchers.items():
+            raw[source] = fetcher.fetch(list(raw.index))
 
         # allow the user to input executable code in the csv. eval it here.
         # FIXME: this is deeply unsafe. need to find a better way to do this.
@@ -132,13 +146,15 @@ class Decision:
         # make sure that the dtype is correct. if not, try to cast it to the correct type and log a
         # warning.
         for metric, metric_scorers in scorers.items():
-            for factor, factor_scorer in metric_scorers.items():
-                dtype = factor_scorer.DTYPE
-                if not raw[factor].dtype == dtype:
-                    logging.warning(
-                        f"factor {factor} has dtype {raw[factor].dtype} but scorer {factor_scorer} requires dtype {dtype}, casting to {dtype}"
+            for factor_name, (source, scorer) in metric_scorers.items():
+                have_dtype = raw[source].dtype
+                req_dtype = scorer.DTYPE
+                if have_dtype != req_dtype:
+                    logger.warning(
+                        f"factor {factor_name} for metric {metric} has dtype {have_dtype} "
+                        f"but requires dtype {req_dtype}. attempting to cast."
                     )
-                    raw[factor] = raw[factor].astype(dtype)
+                    raw[source] = raw[source].astype(req_dtype)
 
         # now that the table is complete, sort the columns alphabetically
         raw = raw.reindex(sorted(raw.columns), axis=1)
@@ -147,12 +163,12 @@ class Decision:
 
     @staticmethod
     def _get_scores(
-        raw: pd.DataFrame, scorers: dict[str, dict[str, Any]]
+        raw: pd.DataFrame, scorers: dict[str, dict[str, SourceScorer]]
     ) -> dict[str, pd.DataFrame]:
         """
         Generate a score dataframe for each metric. The index is the choice name, the columns are
-        the factors. The values are the scores for that factor for that choice. If the column is
-        not included in that metric, the value is np.nan
+        the factors. The values are the scores for that factor for that choice. No columns which
+        are not included in that metric are included in the dataframe.
 
         Parameters
         ----------
@@ -171,27 +187,30 @@ class Decision:
             dict of scores for each metric
             key: metric name
             value: dataframe with the the ranking matrix. the index is the choice name, the columns are
-            the factors. values are floats between 0 and 1. for columns which are not included in that
-            metric, the value is np.nan
+            the factors. values are floats between 0 and 1.
         """
-        ZEROS = lambda col: pd.Series(np.zeros(len(col)), index=col.index)
+        ZEROS = lambda factor_col: pd.Series(np.zeros(len(factor_col)), index=factor_col.index)
         scores = {}
-        for metric, metric_scorers in scorers.items():
-            fun = (
-                lambda col: metric_scorers[col.name](col)
-                if col.name in metric_scorers
-                else ZEROS(col)
+        for metric, factor_scorers in scorers.items():
+            factor_names = list(factor_scorers.keys())
+            scores[metric] = pd.DataFrame(
+                data=np.empty((len(raw), len(factor_names))) * np.nan,
+                columns=factor_names,
+                index=raw.index,
             )
-            scores[metric] = raw.apply(fun, axis=0)
+            for factor_name, (source, scorer) in factor_scorers.items():
+                scores[metric][factor_name] = scorer(raw[source])
+            # ensure no nans remain
+            assert not scores[metric].isna().any().any()
         return scores
 
     @staticmethod
-    def _get_metric_weights(config: dict, raw: pd.DataFrame) -> pd.DataFrame:
+    def _get_metric_weights(config: config_pb2.Config) -> pd.DataFrame:
         """
         Generate the metric weights dataframe, which is necessary to compute results from the scores.
         The index is the metric name, the columns are the factors.
         The values are the weights for that factor for that metric. If the column is not included
-        in that metric, the value is np.nan
+        in that metric, the value is 0.
 
         Parameters
         ----------
@@ -206,21 +225,25 @@ class Decision:
         """
         weights = pd.DataFrame(
             0,
-            columns=raw.columns,
-            index=list(config["metrics"].keys()),
+            columns=[factor.name for factor in config.factors],
+            index=pd.Index(
+                [metric.name for metric in config.metrics], name="metric", dtype="object"
+            ),
         )
+
         # for each metric, set the weights for each factor
-        for metric in config["metrics"]:
-            for factor in config["metrics"][metric]:
-                weights.loc[metric, factor] = config["metrics"][metric][factor]["weight"]
+        for metric in config.metrics:
+            for factor_nw in metric.factors:
+                weights.loc[metric.name, factor_nw.name] = factor_nw.weight
         # normalize the weights for each metric (along each row)
         weights = weights.div(weights.sum(axis=1), axis=0)
-        # sort the rows alphabetically
-        weights = weights.reindex(sorted(weights.index), axis=0)
+        # sort
+        weights = weights.sort_index(axis=0)
+        weights = weights.sort_index(axis=1)
         return weights
 
     @staticmethod
-    def _get_final_weights(config: dict, metrics: list[str]) -> pd.Series:
+    def _get_final_weights(config: config_pb2.Config) -> pd.Series:
         """
         Generate the final weights for each metric. The index is the metric name, the values are
         floats between 0 and 1. This is used for computing the final results from the metric results.
@@ -229,8 +252,6 @@ class Decision:
         ----------
         config : dict
             dict of config values
-        metrics : list[str]
-            list of metric names
 
         Returns
         -------
@@ -238,16 +259,11 @@ class Decision:
             the final weights for each metric. the index is the metric name, the values are floats
             between 0 and 1.
         """
-        # ensure that the final weights include all metrics
-        if set(config["final"].keys()).symmetric_difference(set(metrics)):
-            raise ValueError(
-                "final weights do not include all metrics:\n"
-                f"weights: {set(config['final'].keys())}\n"
-                f"metrics: {metrics}"
-            )
         weights = pd.Series(
-            data=[config["final"][metric] for metric in metrics],
-            index=list(metrics),
+            data=[metric_nw.weight for metric_nw in config.final],
+            index=pd.Index(
+                [metric_nw.name for metric_nw in config.final], name="metric", dtype="object"
+            ),
         )
         # normalize the weights
         weights = weights.div(weights.sum())
@@ -262,7 +278,7 @@ class Decision:
         """
         Generate the results dataframe. The index is the choice name, the columns are the metrics.
         The values are the results for that choice for that metric. If the column is not included
-        in that metric, the value is np.nan
+        in that metric, it will not be included in the dataframe.
 
         Parameters
         ----------
@@ -270,8 +286,8 @@ class Decision:
             dict of scores for each metric
             key: metric name
             value: dataframe with the the ranking matrix. the index is the choice name, the columns are
-            the factors. values are floats between 0 and 1. for columns which are not included in that
-            metric, the value is np.nan
+            the factors. values are floats between 0 and 1. columns which are not included in that
+            metric are no longer included in the dataframe.
         metric_weights : pd.DataFrame
             the weights for each factor for each metric. the index is the metric name, the
             columns are the factors.
@@ -282,15 +298,14 @@ class Decision:
             the results table. the index is the choice name, the columns are the metrics. values are
             floats between 0 and 1.
         """
-        # check and make sure that the columns are shared between scores and weights
-        for metric in metric_weights.index:
-            if set(scores[metric].columns) != set(metric_weights.columns):
+        # for each table in scores, ensure that all columns are included in metric_weights
+        for _, score in scores.items():
+            if set(score.columns).difference(set(metric_weights.columns)):
                 raise ValueError(
-                    "score columns {} do not match weight columns {}".format(
-                        set(scores[metric].columns), set(metric_weights.columns)
+                    "score columns {} are not included in metric weights columns {}".format(
+                        set(score.columns), set(metric_weights.columns)
                     )
                 )
-
         # ensure that all entries in scores have the same rows
         index = list(scores.values())[0].index
         for _, score in scores.items():
@@ -299,12 +314,20 @@ class Decision:
                     "score index {} does not match index {}".format(score.index, index)
                 )
         results = pd.DataFrame(
-            data=np.empty((len(index), len(scores))),
+            data=np.empty((len(index), len(scores))) * np.nan,
             columns=list(scores.keys()),
             index=index,
         )
         for metric, score in scores.items():
-            results[metric] = score.dot(metric_weights.loc[metric])
+            # metric_weights will have a column for every possible factors, but each dataframe in scores
+            # will only have columns for the factors included in that metric. so we need to drop the
+            # columns from metric_weights that are not included in any of the scores dataframes.
+            # this is necessary because we will be multiplying the scores dataframes by the metric
+            this_metric_weights = metric_weights.drop(
+                columns=set(metric_weights.columns).difference(set(score.columns))
+            )
+            results[metric] = score.dot(this_metric_weights.T).loc[:, metric]
+        assert not results.isna().any().any()
         return results
 
     @staticmethod
@@ -340,7 +363,64 @@ class Decision:
         final_results = final_results.sort_values(ascending=False)
         return final_results
 
-    def __init__(self, config_path: str, raw_path: str):
+    @staticmethod
+    def _get_factor_docs(config: config_pb2.Config) -> dict[str, dict[str, str]]:
+        """
+        Get the documentation for each factor for each metric.
+
+        Parameters
+        ----------
+        config : dict
+            dict of config values
+
+        Returns
+        -------
+        dict[str, dict[str, str]]
+            dict of docs for each factor for each metric
+            key: metric name
+            value: dict of docs for each factor
+                key: factor name
+                value: str
+        """
+        factor_docs = {}
+        for metric_pb in config.metrics:
+            factor_docs[metric_pb.name] = {}
+            for factor_nw in metric_pb.factors:
+                factor_pb = find_factor(config, factor_nw.name)
+                factor_docs[metric_pb.name][factor_nw.name] = factor_pb.doc
+        return factor_docs
+
+    @staticmethod
+    def _get_scorer_docs(scorers: dict[str, dict[str, SourceScorer]]) -> dict[str, dict[str, str]]:
+        """
+        Get the documentation for each scorer for each metric.
+
+        Parameters
+        ----------
+        scorers : dict[str, dict[str, SourceScorer]]
+            dict of scorers for each metric
+            key: metric name
+            value: dict of scorers for each factor
+                key: factor name
+                value: SourceScorer
+
+        Returns
+        -------
+        dict[str, dict[str, str]]
+            dict of docs for each scorer for each metric
+            key: metric name
+            value: dict of docs for each scorer
+                key: factor name
+                value: str
+        """
+        scorer_docs = {}
+        for metric, metric_scorers in scorers.items():
+            scorer_docs[metric] = {}
+            for factor_name, (source, scorer) in metric_scorers.items():
+                scorer_docs[metric][factor_name] = scorer.doc()
+        return scorer_docs
+
+    def __init__(self, config: config_pb2, raw_path: str):
         """
         Parameters
         ----------
@@ -355,11 +435,6 @@ class Decision:
         """
         logger = logging.getLogger()
 
-        # read the config yaml
-        with open(config_path, "r") as f:
-            config = load_yaml(f)
-        logger.debug("config:\n{}".format(yaml.dump(config)))
-
         scorers = self._get_scorers(config)
         logger.debug("scorers:\n{}".format(pprint.pformat(scorers)))
 
@@ -371,7 +446,7 @@ class Decision:
         for metric, scores in self.scores.items():
             logger.debug(f"{metric}:\n{scores}")
 
-        self.metric_weights = self._get_metric_weights(config, self.raw)
+        self.metric_weights = self._get_metric_weights(config)
         logger.debug("Weights:\n{}".format(pprint.pformat(self.metric_weights)))
 
         # generate the results table
@@ -379,25 +454,14 @@ class Decision:
         logger.debug("Results:\n{}".format(pprint.pformat(self.metric_results)))
 
         # generate the final weights
-        self.final_weights = self._get_final_weights(config, self.metrics())
+        self.final_weights = self._get_final_weights(config)
 
         # generate the final results
         self.final_results = self._get_final_results(self.metric_results, self.final_weights)
 
         # store docs for each factor and scorer
-        self.factor_docs = {
-            metric: {
-                factor: config["metrics"][metric][factor]["scoring"]["doc"]
-                if "doc" in config["metrics"][metric][factor]["scoring"]
-                else "\n"
-                for factor in config["metrics"][metric]
-            }
-            for metric in config["metrics"]
-        }
-        self.scorer_docs = {
-            metric: {factor: scorers[metric][factor].doc() for factor in scorers[metric]}
-            for metric in scorers
-        }
+        self.factor_docs = self._get_factor_docs(config)
+        self.scorer_docs = self._get_scorer_docs(scorers)
 
     def choices(self) -> list[str]:
         """

@@ -1,51 +1,43 @@
-cost_scoring: &cost_scoring
-    type: relative
-    config:
-        invert: true
-size_scoring: &size_scoring
-    type: interpolate
-    config:
-        knots:
-            - {in: 0.0, out: 0.0}
-            - {in: 5.0, out: 1.0}
-            - {in: 10.0, out: 0.0}
-looks_scoring: &looks_scoring
-    type: star
-    config:
-        min: 1
-        max: 5
-economy_scoring: &economy_scoring
-    type: bucket
-    config:
-        buckets:
-            - {min: 0.0, max: 2.0, val: 0.2}
-            - {min: 2.0, max: 4.0, val: 0.4}
-            - {min: 4.0, max: 6.0, val: 0.6}
-            - {min: 6.0, max: 8.0, val: 0.8}
-            - {min: 8.0, max: 10.0, val: 1.0}
-power_scoring: &power_scoring
-    type: range
-    config:
-        best: 10.0
-        worst: 0.0
+factors:
+    -   name: cost
+        source: cost
+        scoring: {relative: {invert: true}}
+        doc: |
+            This is a comment
+    -   name: size
+        source: size
+        scoring:
+            interpolate:
+                knots:
+                    - {in: 0.0, out: 0.0}
+                    - {in: 5.0, out: 1.0}
+                    - {in: 10.0, out: 0.0}
+    -   name: looks
+        source: looks
+        scoring: {star: {min: 1, max: 5}}
+    -   name: economy
+        source: economy
+        scoring:
+            bucket:
+                buckets:
+                    - {min: 0.0, max: 2.0, val: 0.2}
+                    - {min: 2.0, max: 4.0, val: 0.4}
+                    - {min: 4.0, max: 6.0, val: 0.6}
+                    - {min: 6.0, max: 8.0, val: 0.8}
+                    - {min: 8.0, max: 10.0, val: 1.0}
+    -   name: power2
+        source: power
+        scoring: {range: {best: 10.0, worst: 0.0}}
 metrics:
-    smart:
-        cost: 
-            scoring: *cost_scoring
-            weight: 1.0
-        size: 
-            scoring: *size_scoring
-            weight: 1.0
-        economy: 
-            scoring: *economy_scoring
-            weight: 1.0
-    fun:
-        looks:
-            scoring: *looks_scoring
-            weight: 1.0
-        power:
-            scoring: *power_scoring
-            weight: 1.0
+    -   name: smart
+        factors:
+            - {name: cost, weight: 1.0}
+            - {name: size, weight: 1.0}
+            - {name: economy, weight: 1.0}
+    -   name: fun
+        factors:
+            - {name: looks, weight: 1.0}
+            - {name: power2, weight: 1.0}
 final:
-    smart: 0.67
-    fun: 0.33
+    - {name: smart, weight: 0.67}
+    - {name: fun, weight: 0.33}
