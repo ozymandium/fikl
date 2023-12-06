@@ -4,7 +4,7 @@ import unittest
 
 from fikl.decision import Decision
 from fikl.html import report
-from fikl.config import load as load_config
+from fikl.config import load_yaml
 
 
 class TestFunction(unittest.TestCase):
@@ -13,17 +13,23 @@ class TestFunction(unittest.TestCase):
     def test_basic(self) -> None:
         # get a list of all files in the data folder
         data_dir = os.path.join(os.path.dirname(__file__), "data")
-        files = os.listdir(data_dir)
-        # each config and data file should have the same name
-        configs = sorted([f for f in files if f.endswith(".yaml")])
-        raws = sorted([f for f in files if f.endswith(".csv")])
-        # make sure there are the same number of each
-        self.assertEqual(len(configs), len(raws))
-        self.assertEqual(len(configs), len(set(configs)))
-        # run each one
-        for config, raw in zip(configs, raws):
-            config_path = os.path.join(data_dir, config)
-            raw_path = os.path.join(data_dir, raw)
-            decision = Decision(config=load_config(config_path), raw_path=raw_path)
+        folders = [f for f in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, f))]
+        for folder in folders:
+            # consider every yaml part of the overall config
+            config_paths = [
+                os.path.join(data_dir, folder, f)
+                for f in os.listdir(os.path.join(data_dir, folder))
+                if f.endswith(".yaml")
+            ]
+            # should only be a single csv file
+            raw_path = [
+                os.path.join(data_dir, folder, f)
+                for f in os.listdir(os.path.join(data_dir, folder))
+                if f.endswith(".csv")
+            ]
+            self.assertEqual(len(raw_path), 1)
+            raw_path = raw_path[0]
+            config = load_yaml(*config_paths)
+            decision = Decision(config=config, raw_path=raw_path)
             html = report(decision)
             # TODO: check that the html is valid

@@ -135,7 +135,7 @@ def build_ordered_depth_first_tree(items: list[Any], levels: list[int]) -> Order
     return tree
 
 
-def load_yaml(stream):
+def load_yaml(stream) -> dict:
     """
     Load YAML from a stream, fully expanding aliases. This is a hack.
 
@@ -219,4 +219,4 @@ def load_yamls(*paths) -> dict:
         if not isinstance(this_data, dict):
             raise ValueError(f"YAML file {path} is not a dict:\n{this_data}")
         dicts.append(this_data)
-    return merge_dicts(*data)
+    return merge_dicts(*dicts)

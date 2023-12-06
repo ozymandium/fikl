@@ -1,6 +1,6 @@
 from fikl.decision import Decision
 from fikl.html import report
-from fikl.config import load as load_config
+from fikl.config import load_yaml
 
 import argparse
 import logging
@@ -12,7 +12,9 @@ import ipdb  # type: ignore
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", required=True, help="Path to YAML with configuration")
+    parser.add_argument(
+        "-c", "--config", required=True, help="Path to YAMLs with configuration", nargs="+"
+    )
     parser.add_argument("-d", "--data", required=True, help="Path to CSV with scores")
     parser.add_argument("-o", "--output", required=True, help="Path to HTML output")
     parser.add_argument("--debug", action="store_true")
@@ -35,7 +37,7 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    config = load_config(args.config)
+    config = load_yaml(*args.config)
     decision = Decision(config=config, raw_path=args.data)
     report(decision, args.output)
 

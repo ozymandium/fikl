@@ -1,7 +1,5 @@
 from fikl.scorers import get_scorer_from_factor
 from fikl.fetchers import LOOKUP as FETCHER_LOOKUP
-from fikl.util import load_yaml
-from fikl.config import load as load_config
 from fikl.config import find_factor
 from fikl.proto import config_pb2
 
