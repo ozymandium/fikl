@@ -151,3 +151,72 @@ def load_yaml(stream):
     """
     data = yaml.load(stream, Loader=yaml.FullLoader)
     return json.loads(json.dumps(data))
+
+
+def merge_dicts(*dicts) -> dict:
+    """
+    Recursively merge dicts together. Keys can be shared between dicts, as long as they are not at
+    the bottom level. If there are any overlapping that would require overwriting a value, then
+    raise an error.
+
+    Parameters
+    ----------
+    *dicts : dict
+        The dicts to merge
+
+    Returns
+    -------
+    dict
+        The merged dict
+
+    Raises
+    ------
+    ValueError
+        If there are any overlapping keys
+    """
+    for d in dicts:
+        ensure_type(d, dict)
+    merged = {}
+    for d in dicts:
+        for k, v in d.items():
+            if k in merged:
+                if isinstance(v, dict):
+                    if not isinstance(merged[k], dict):
+                        raise ValueError(f"Overlapping keys: {k}")
+                    merged[k] = merge_dicts(merged[k], v)
+                else:
+                    raise ValueError(f"Overlapping keys: {k}")
+            else:
+                merged[k] = v
+    return merged
+
+
+def load_yamls(*paths) -> dict:
+    """
+    Load multiple YAML files and merge them together. Ensure there are no conflicts, and raise an
+    error if there is any overlap in keys.
+
+    Parameters
+    ----------
+    *paths : str
+        The paths to the YAML files to load
+
+    Returns
+    -------
+    dict
+        The merged dict
+
+    Raises
+    ------
+    ValueError
+        If there are any overlapping keys, or if any of the YAML files are not dicts
+    """
+    dicts = []
+    # since yaml can represent lists or other non-dict types, ensure that each dict is a dict
+    for path in paths:
+        with open(path, "r") as f:
+            this_data = load_yaml(f)
+        if not isinstance(this_data, dict):
+            raise ValueError(f"YAML file {path} is not a dict:\n{this_data}")
+        dicts.append(this_data)
+    return merge_dicts(*data)
