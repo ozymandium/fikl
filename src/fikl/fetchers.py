@@ -345,11 +345,68 @@ class CountyElectionMargin:
         return pd.Series(ret, index=choices)
 
 
+class ZoriFetcher:
+    """
+    Zillow Observed Rent Index (ZORI) fetcher.
+
+    https://www.zillow.com/research/data/
+
+    Zillow Observed Rent Index (ZORI): A smoothed measure of the typical observed market rate rent
+    across a given region. ZORI is a repeat-rent index that is weighted to the rental housing stock
+    to ensure representativeness across the entire market, not just those homes currently listed 
+    for-rent. The index is dollar-denominated by computing the mean of listed rents that fall into 
+    the 40th to 60th percentile range for all homes and apartments in a given region, which is once 
+    again weighted to reflect the rental housing stock. Details available in ZORI methodology.
+
+    Note that this is for all rentals, not just apartments, or certain sizes of apartments.
+    """
+    CODE = "ZORI"
+    SOURCE_FILE = os.path.join(os.path.dirname(__file__), "data", "City_zori_uc_sfrcondomfr_sm_sa_month.csv")
+
+    def __init__(self):
+        self.df = pd.read_csv(self.SOURCE_FILE)
+        # create a new column with the format "city, state"
+        self.df["choice"] = self.df["RegionName"] + ", " + self.df["State"]
+        # rename the 2023-10-31 column to "zori"
+        self.df.rename(columns={"2023-10-31": "zori"}, inplace=True)
+        # filter out columns we don't need
+        self.df = self.df[["choice", "zori"]]
+        # set the index to the choice column
+        self.df.set_index("choice", inplace=True)
+
+    def fetch(self, choices: List[str]) -> pd.Series:
+        """
+        Fetches the ZORI for the given choices.
+
+        Parameters
+        ----------
+        choices : list[str]
+            List of "City, State" strings to fetch data for, e.g. "New York, NY"
+
+        Returns
+        -------
+        pd.Series
+            Series with the same index as the list of choices. Values are the ZORI for the
+            choice.
+        """
+        # ensure choices are unique
+        if len(set(choices)) != len(choices):
+            raise ValueError("choices must be unique")
+        # check that all choices are in the data
+        if not set(choices).issubset(set(self.df.index)):
+            raise ValueError(f"choices not in data: {set(choices) - set(self.df.index)}")
+        # narrow the data to only the choices we want
+        df = self.df.loc[choices]
+        # return the ZORI for each choice
+        return df["zori"].astype(float)
+
+
 LOOKUP = {
     fetcher.CODE: fetcher
     for fetcher in [
         ObesityFetcher,
         CountyElectionMargin,
         DepressionFetcher,
+        ZoriFetcher,
     ]
 }
