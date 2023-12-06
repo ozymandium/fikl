@@ -12,7 +12,9 @@ import ipdb  # type: ignore
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", required=True, help="Path to YAMLs with configuration", nargs="+")
+    parser.add_argument(
+        "-c", "--config", required=True, help="Path to YAMLs with configuration", nargs="+"
+    )
     parser.add_argument("-d", "--data", required=True, help="Path to CSV with scores")
     parser.add_argument("-o", "--output", required=True, help="Path to HTML output")
     parser.add_argument("--debug", action="store_true")
