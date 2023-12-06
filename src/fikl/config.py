@@ -3,20 +3,21 @@ Tools for parsing a YAML config file into a protobuf Config object, as defined i
 fikl/proto/config.proto.
 """
 from fikl.proto import config_pb2
-from fikl.util import load_yaml
+from fikl.util import load_yamls as dict_from_yamls
 
 import os
 import yaml
 import json
 import tempfile
 import logging
+from typing import List
 
 from google.protobuf.json_format import ParseDict
 
 
-def load(config_yaml_path: str) -> config_pb2.Config:
+def load_yaml(*config_yaml_paths: List[str]) -> config_pb2.Config:
     """
-    Parse a YAML config file into a
+    Parse YAML config files into a protobuf Config object.
 
     Parameters
     ----------
@@ -28,9 +29,8 @@ def load(config_yaml_path: str) -> config_pb2.Config:
     Config
         Cap'n Proto Config object
     """
+    config_dict = dict_from_yamls(*config_yaml_paths)
     config = config_pb2.Config()
-    # use a workaround to expand aliases when loading the yaml
-    config_dict = load_yaml(open(config_yaml_path, "r"))
     ParseDict(config_dict, config)
     return config
 

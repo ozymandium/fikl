@@ -219,4 +219,4 @@ def load_yamls(*paths) -> dict:
         if not isinstance(this_data, dict):
             raise ValueError(f"YAML file {path} is not a dict:\n{this_data}")
         dicts.append(this_data)
-    return merge_dicts(*data)
+    return merge_dicts(*dicts)

@@ -9,7 +9,7 @@ import pprint
 from fikl.decision import Decision, SourceScorer
 import fikl.scorers
 from fikl.proto import config_pb2
-from fikl.config import load as load_config
+from fikl.config import load_yaml
 
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_series_equal
@@ -17,12 +17,15 @@ import numpy as np
 
 
 class TestDecision(unittest.TestCase):
-    CONFIG_PATH = os.path.join(os.path.dirname(__file__), "data", "simple", "simple.yaml")
+    CONFIG_PATHS = [
+        os.path.join(os.path.dirname(__file__), "data", "simple", "simple.yaml"),
+        os.path.join(os.path.dirname(__file__), "data", "simple", "factors.yaml"),
+    ]
     RAW = os.path.join(os.path.dirname(__file__), "data", "simple", "simple.csv")
 
     def setUp(self) -> None:
         self.maxDiff = None
-        self.config = load_config(self.CONFIG_PATH)
+        self.config = load_yaml(*self.CONFIG_PATHS)
 
     def test_get_scorers(self) -> None:
         scorers = Decision._get_scorers(self.config)

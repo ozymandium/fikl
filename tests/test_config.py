@@ -13,14 +13,17 @@ from fikl.proto import config_pb2
 
 
 class TestLoad(unittest.TestCase):
-    CONFIG = os.path.join(os.path.dirname(__file__), "data", "simple", "simple.yaml")
+    CONFIG_PATHS = [
+        os.path.join(os.path.dirname(__file__), "data", "simple", "simple.yaml"),
+        os.path.join(os.path.dirname(__file__), "data", "simple", "factors.yaml"),
+    ]
 
     def setUp(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.maxDiff = None
 
     def test_load(self) -> None:
-        config = fikl.config.load(self.CONFIG)
+        config = fikl.config.load_yaml(*self.CONFIG_PATHS)
         self.assertEqual(len(config.factors), 5)
 
         self.assertEqual(
