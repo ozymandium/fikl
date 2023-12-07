@@ -1,10 +1,8 @@
 from fikl.scorers import get_scorer_from_factor
-from fikl.fetchers import LOOKUP as FETCHER_LOOKUP
 from fikl.config import find_factor
 from fikl.proto import config_pb2
 
-
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, Callable
 import logging
 import pprint
 import os
@@ -92,6 +90,30 @@ class Decision:
         return scorers
 
     @staticmethod
+    def _get_fetcher(path: str) -> Callable:
+        """
+        Get an instance of the specific the fetcher class from the import path.
+
+        Parameters
+        ----------
+        path : str
+            import path to the fetcher class, of the form "package.module.Class" or at least
+            "module.Class"
+
+        Returns
+        -------
+        Callable
+            an instantiated fetcher class
+        """
+        # split the path into the module and class name
+        module, cls = path.rsplit(".", 1)
+        # import the module
+        mod = __import__(module, fromlist=[cls])
+        # get the class from the module
+        fetcher = getattr(mod, cls)
+        return fetcher()
+
+    @staticmethod
     def _get_raw(
         config: config_pb2.Config, raw_path: str, scorers: dict[str, dict[str, SourceScorer]]
     ) -> pd.DataFrame:
@@ -124,17 +146,24 @@ class Decision:
 
         # set of all requested sources from the config
         req_sources = set([factor.source for factor in config.factors])
+        # any factor that is not a column in the raw data already will need to be fetched
+        missing_sources = req_sources.difference(set(raw.columns))
         logger.debug("requested sources: {}".format(pprint.pformat(req_sources)))
         logger.debug("available CSV columns: {}".format(pprint.pformat(raw.columns)))
-        logger.debug("avalable fetcher sources: {}".format(pprint.pformat(FETCHER_LOOKUP.keys())))
+        logger.debug("missing sources:\n{}".format(pprint.pformat(missing_sources)))
 
-        # any factor that is not a column in the raw data already will need to be fetched
         fetchers = {
-            source: FETCHER_LOOKUP[source]() for source in req_sources if source not in raw.columns
+            source: Decision._get_fetcher(source)
+            for source in req_sources
+            if source not in raw.columns
         }
         logger.debug("fetchers: {}".format(pprint.pformat(fetchers)))
         for source, fetcher in fetchers.items():
-            raw[source] = fetcher.fetch(list(raw.index))
+            val = fetcher(list(raw.index))
+            # ensure that the fetcher return is a list of builtin floats
+            if not isinstance(val, list) or not all(isinstance(x, float) for x in val):
+                raise ValueError(f"fetcher {source} returned {val} but expected a list of floats")
+            raw[source] = val
 
         # allow the user to input executable code in the csv. eval it here.
         # FIXME: this is deeply unsafe. need to find a better way to do this.
