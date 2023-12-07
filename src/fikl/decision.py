@@ -159,7 +159,11 @@ class Decision:
         }
         logger.debug("fetchers: {}".format(pprint.pformat(fetchers)))
         for source, fetcher in fetchers.items():
-            raw[source] = fetcher(list(raw.index))
+            val = fetcher(list(raw.index))
+            # ensure that the fetcher return is a list of builtin floats
+            if not isinstance(val, list) or not all(isinstance(x, float) for x in val):
+                raise ValueError(f"fetcher {source} returned {val} but expected a list of floats")
+            raw[source] = val
 
         # allow the user to input executable code in the csv. eval it here.
         # FIXME: this is deeply unsafe. need to find a better way to do this.

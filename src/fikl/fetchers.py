@@ -28,4 +28,4 @@ class ExampleFetcher:
         List[float]
             A list of floats, one for each choice. Each float must be non NaN and non infinite.
         """
-        return [len(choice) for choice in choices]
+        return [float(len(choice)) for choice in choices]

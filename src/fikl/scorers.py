@@ -397,6 +397,7 @@ class Range(Interpolate):
             """
 
 
+# FIXME: this is kinda ugly, do an import / module getattr in Decision instead?
 _SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range]
 _LOOKUP = {scorer_type.CODE: scorer_type for scorer_type in _SCORER_TYPES}
 
