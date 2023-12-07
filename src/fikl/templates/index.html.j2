@@ -50,6 +50,18 @@ factor_scorings : list[str]
                     {{final_weights_table}}
                 </div>
             </p>
+            <p>
+                {% if ignored_metrics|length > 0 %}
+                    The following metrics are not included in the final selection:
+                    <ol>
+                    {% for ignored_metric in ignored_metrics %}
+                        <li>{{ignored_metric}}</li>
+                    {% endfor %}
+                    </ol>
+                {% else %}
+                    <b>Ignored Metrics</b>: all metrics are included in the final selection!
+                {% endif %}
+            </p>
         </div>
 
         <div>

@@ -352,9 +352,9 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     ignored_factors = [
         factor for factor in decision.all_factors() if all(decision.metric_weights[factor] == 0.0)
     ]
-    # a metric is ignored if all values in its row in the final weights table are 0
+    # a metric is ignored if it does not appear in the final weights table
     ignored_metrics = [
-        metric for metric in decision.metrics() if decision.final_weights.loc[metric] == 0.0
+        metric for metric in decision.metrics() if metric not in decision.final_weights
     ]
 
     # dump the html blobs into a template

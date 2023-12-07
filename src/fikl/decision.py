@@ -349,13 +349,15 @@ class Decision:
         pd.Series
             the final results. the index is the choice name, the values are floats between 0 and 1.
         """
-        # check and make sure that the columns are shared between results and final weights
-        if set(metric_results.columns) != set(final_weights.index):
-            raise ValueError(
-                "results columns {} do not match final weights columns {}".format(
-                    set(metric_results.columns), set(final_weights.index)
-                )
+        # if not all metrics are included in the final weights, drop the columns from results that
+        # are not included in the final weights
+        metrics_not_in_final = set(metric_results.columns).difference(set(final_weights.index))
+        if metrics_not_in_final:
+            logging.debug(
+                "dropping metrics from final results because they are missingfrom final weights:\n"
+                f"{metrics_not_in_final}"
             )
+            metric_results = metric_results.drop(columns=metrics_not_in_final)
         final_results = metric_results.dot(final_weights)
         # sort by the final results
         final_results = final_results.sort_values(ascending=False)
