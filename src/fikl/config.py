@@ -35,23 +35,23 @@ def load_yaml(*config_yaml_paths: List[str]) -> config_pb2.Config:
     return config
 
 
-def find_factor(config: config_pb2.Config, name: str) -> config_pb2.Factor:
-    """
-    Get a factor from a config object by name.
+# def find_factor(config: config_pb2.Config, name: str) -> config_pb2.Factor:
+#     """
+#     Get a factor from a config object by name.
 
-    Parameters
-    ----------
-    config : Config
-        Cap'n Proto Config object
-    name : str
-        Name of the factor to get.
+#     Parameters
+#     ----------
+#     config : Config
+#         Cap'n Proto Config object
+#     name : str
+#         Name of the factor to get.
 
-    Returns
-    -------
-    Factor
-        Cap'n Proto Factor object
-    """
-    matching = [f for f in config.factors if f.name == name]
-    if len(matching) != 1:
-        raise ValueError(f"Could not find unique factor with name {name}")
-    return matching[0]
+#     Returns
+#     -------
+#     Factor
+#         Cap'n Proto Factor object
+#     """
+#     matching = [f for f in config.factors if f.name == name]
+#     if len(matching) != 1:
+#         raise ValueError(f"Could not find unique factor with name {name}")
+#     return matching[0]

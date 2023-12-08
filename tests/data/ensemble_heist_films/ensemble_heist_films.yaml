@@ -1,4 +1,4 @@
-factors:
+measures:
     -   name: actors
         source: actors
         scoring: {relative: {invert: true}}
@@ -32,6 +32,8 @@ metrics:
             - {name: rotten_tomatoes, weight: 1.0}
             - {name: actors, weight: 1.0}
             - {name: lighthearted, weight: 1.0}
-final: 
-    - {name: personal, weight: 0.5}
-    - {name: critical, weight: 0.5}
+    -   name: final
+        factors:
+        - {name: personal, weight: 0.5}
+        - {name: critical, weight: 0.5}
+final: final

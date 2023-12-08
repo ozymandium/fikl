@@ -1,4 +1,4 @@
-factors:
+measures:
     -   name: cost
         source: cost
         scoring: {relative: {invert: true}}

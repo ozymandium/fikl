@@ -8,6 +8,8 @@ metrics:
         factors:
             - {name: looks, weight: 1.0}
             - {name: power2, weight: 1.0}
-final:
-    - {name: smart, weight: 0.67}
-    - {name: fun, weight: 0.33}
+    -   name: final
+        factors:
+            - {name: smart, weight: 0.67}
+            - {name: fun, weight: 0.33}
+final: final

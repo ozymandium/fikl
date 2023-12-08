@@ -94,6 +94,8 @@ class Decision:
         """
         Get an instance of the specific the fetcher class from the import path.
 
+        TODO: move this to fetchers.py module
+
         Parameters
         ----------
         path : str
