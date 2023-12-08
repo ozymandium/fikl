@@ -21,16 +21,12 @@ A tuple of a source and a scorer. This is used to store the scorer for each fact
 
 class Decision:
     """
-    TODO: swap to functional/imperative style instead of OOP.
-
     Members
     -------
-    logger : logging.Logger
-        logger for this class
     raw : pd.DataFrame
         the raw user input matrix. the index is the choice name, the columns are the factors.
         when a column is missing from the user-provided csv, it is fetched from the fetcher and
-        added to the dataframe
+        added to the dataframe. this 
     scores : dict[str, pd.DataFrame]
         scores for each metric.
         key: the name of the metric
