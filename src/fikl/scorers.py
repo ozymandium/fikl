@@ -18,6 +18,7 @@ The config file should have a section that looks like this:
 
 TODO:
 - each scorer only ever gets used once. as such, they don't have to be as robust as they are. 
+- make each constructor take in the corresponding protobuf scorer config object instead of kwargs
 """
 from fikl.util import ensure_type
 from fikl.proto import config_pb2
@@ -112,7 +113,10 @@ class Bucket:
     DTYPE = float
 
     class Pail:
-        """A range of values that all get the same score."""
+        """A range of values that all get the same score.
+        
+        TODO: replace with config_pb2.BucketScorerConfig.Bucket
+        """
 
         def __init__(self, min: float, max: float, val: float):
             # if inputs are not floats, cast them to floats, but log a warning
@@ -402,24 +406,55 @@ _SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range]
 _LOOKUP = {scorer_type.CODE: scorer_type for scorer_type in _SCORER_TYPES}
 
 
-def get_scorer_from_factor(factor: config_pb2.Factor) -> Any:
-    """Given a factor, return the scorer that it specifies.
+ScorerInfo = namedtuple("ScorerInfo", ["measure", "source", "scorer"])
+ScorerInfo.__doc__ = """
+A tuple of a source and a scorer. This is used to store the scorer for each factor for each metric.
+
+Attributes
+----------
+measure : str
+    measure name
+source : str
+    source name
+scorer : Callable
+    scorer class that has been instantiated
+"""
+
+
+def get_scorer_info(measure: config_pb2.Measure) -> ScorerInfo:
+    """Given a measure, return the scorer that it specifies.
 
     Parameters
     ----------
-    factor : config_pb2.Factor
-        Factor to get scorer for
+    measure : config_pb2.Measure
 
     Returns
     -------
-    Any
-        A scorer object
+    ScorerInfo
     """
-    which = factor.scoring.WhichOneof("config")
+    which = measure.scoring.WhichOneof("config")
     if which is None:
-        raise ValueError("factor {} does not specify a scorer".format(factor))
+        raise ValueError("Measure {} does not specify a scorer".format(measure))
     scorer_type = _LOOKUP[which]
     assert which == scorer_type.CODE
-    scorer_config = getattr(factor.scoring, which)
+    scorer_config = getattr(measure.scoring, which)
     scorer_config_dict = MessageToDict(scorer_config)
-    return scorer_type(**scorer_config_dict)
+    return ScorerInfo(
+        measure=measure.name,
+        source=measure.source,
+        scorer=scorer_type(**scorer_config_dict)
+    )
+
+
+def get_scorer_info_from_config(config: config_pb2.Config) -> List[ScorerInfo]:
+    """Given a config, return a list of scorer info for each measure.
+
+    Parameters
+    ----------
+    config : config_pb2.Config
+
+    Returns
+    -------
+    List[ScorerInfo]
+    """
+    return [get_scorer_info(measure) for measure in config.measures]

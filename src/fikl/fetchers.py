@@ -29,3 +29,68 @@ class ExampleFetcher:
             A list of floats, one for each choice. Each float must be non NaN and non infinite.
         """
         return [float(len(choice)) for choice in choices]
+
+
+def get_fetcher(path: str) -> Callable:
+    """
+    Get an instance of the specific the fetcher class from the import path.
+
+    Parameters
+    ----------
+    path : str
+        import path to the fetcher class, of the form "package.module.Class" or at least
+        "module.Class"
+
+    Returns
+    -------
+    Callable
+        an instantiated fetcher class
+    """
+    # split the path into the module and class name
+    module, cls = path.rsplit(".", 1)
+    # import the module
+    mod = __import__(module, fromlist=[cls])
+    # get the class from the module
+    fetcher = getattr(mod, cls)
+    # ensure that the fetcher has a __call__ method
+    if not hasattr(fetcher, "__call__"):
+        raise ValueError(f"Fetcher {path} does not have a __call__ method")
+    return fetcher()
+
+
+def fetch(sources: list[str], choices: list[str]) -> pd.DataFrame:
+    """
+    Fetch data from the sources for the choices.
+
+    Parameters
+    ----------
+    sources : list[str]
+        list of import paths to the fetcher classes
+    choices : list[str]
+        list of choices to evaluate
+
+    Returns
+    -------
+    pd.DataFrame
+        a dataframe with the fetched data. The index is the choices, and the columns are the sources.
+    """
+    # get the fetchers
+    fetchers = [get_fetcher(source) for source in sources]
+    # fetch the data
+    data = [fetcher(choices) for fetcher in fetchers]
+    # ensure the data types are all floats
+    for i, d in enumerate(data):
+        if not isinstance(d, list):
+            raise TypeError(f"Fetcher {sources[i]} returned a {type(d)}, not a list")
+        for j, v in enumerate(d):
+            if not isinstance(v, float):
+                raise TypeError(
+                    f"Fetcher {sources[i]} returned a {type(v)} at index {j}, not a float"
+                )
+    # create a dataframe
+    df = pd.DataFrame(data).T
+    # set the column names
+    df.columns = sources
+    # set the index
+    df.index = choices
+    return df
