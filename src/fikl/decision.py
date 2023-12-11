@@ -16,7 +16,6 @@ import numpy as np
 import networkx as nx
 
 
-@staticmethod
 def _get_source_data(config: config_pb2.Config, raw_path: str) -> pd.DataFrame:
     """
     Read all source data, which is referred to by the `source` field of each config_pb2.Measure.
@@ -64,7 +63,6 @@ def _get_source_data(config: config_pb2.Config, raw_path: str) -> pd.DataFrame:
     return ret
 
 
-@staticmethod
 def _get_measure_data(source_data: pd.DataFrame, scorer_info: list[ScorerInfo]) -> pd.DataFrame:
     """
     Generate the measure data, which is the values for each measure for each choice. The index
@@ -92,7 +90,6 @@ def _get_measure_data(source_data: pd.DataFrame, scorer_info: list[ScorerInfo]) 
     return measure_data
 
 
-@staticmethod
 def _get_weights(config: config_pb2.Config) -> pd.DataFrame:
     """
     Generate the metric weights dataframe, which is necessary to compute scores for each metric.
@@ -126,7 +123,6 @@ def _get_weights(config: config_pb2.Config) -> pd.DataFrame:
     return weights
 
 
-@staticmethod
 def _get_metric_results(
     measure_data: pd.DataFrame, weights: pd.DataFrame, eval_order: list[str]
 ) -> pd.DataFrame:

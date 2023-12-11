@@ -5,7 +5,7 @@ import networkx as nx
 
 def create_graph(config: config_pb2.Config) -> nx.DiGraph:
     """
-    Create a directed acyclic graph from a config.
+    Create a directed acyclic graph from a config. This includes all sources, measures, and metrics.
     """
     G = nx.DiGraph()
 

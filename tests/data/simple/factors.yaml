@@ -1,10 +1,10 @@
 measures:
-    -   name: cost
+    -   name: Cost
         source: cost
         scoring: {relative: {invert: true}}
         doc: |
             This is a comment
-    -   name: size
+    -   name: Size
         source: size
         scoring:
             interpolate:
@@ -12,10 +12,10 @@ measures:
                     - {in: 0.0, out: 0.0}
                     - {in: 5.0, out: 1.0}
                     - {in: 10.0, out: 0.0}
-    -   name: looks
+    -   name: Looks
         source: looks
         scoring: {star: {min: 1, max: 5}}
-    -   name: economy
+    -   name: Economy
         source: economy
         scoring:
             bucket:
@@ -25,6 +25,6 @@ measures:
                     - {min: 4.0, max: 6.0, val: 0.6}
                     - {min: 6.0, max: 8.0, val: 0.8}
                     - {min: 8.0, max: 10.0, val: 1.0}
-    -   name: power2
+    -   name: Power
         source: power
         scoring: {range: {best: 10.0, worst: 0.0}}

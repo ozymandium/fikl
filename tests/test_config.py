@@ -30,7 +30,7 @@ class TestLoad(unittest.TestCase):
 
         self.assertEqual(
             [config.measures[i].name for i in range(len(config.measures))],
-            ["cost", "size", "looks", "economy", "power2"],
+            ["Cost", "Size", "Looks", "Economy", "Power"],
         )
 
         self.assertEqual(
