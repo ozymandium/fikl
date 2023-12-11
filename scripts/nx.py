@@ -37,6 +37,7 @@ def plot_graph(G: nx.DiGraph) -> plt.Figure:
 
     return plt.gcf()
 
+
 G = create_graph(config)
 order = list(nx.topological_sort(G))
 print(f"Topological sort: \n{order}")

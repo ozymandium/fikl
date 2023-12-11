@@ -114,7 +114,7 @@ class Bucket:
 
     class Pail:
         """A range of values that all get the same score.
-        
+
         TODO: replace with config_pb2.BucketScorerConfig.Bucket
         """
 
@@ -440,9 +440,7 @@ def get_scorer_info(measure: config_pb2.Measure) -> ScorerInfo:
     scorer_config = getattr(measure.scoring, which)
     scorer_config_dict = MessageToDict(scorer_config)
     return ScorerInfo(
-        measure=measure.name,
-        source=measure.source,
-        scorer=scorer_type(**scorer_config_dict)
+        measure=measure.name, source=measure.source, scorer=scorer_type(**scorer_config_dict)
     )
 
 
