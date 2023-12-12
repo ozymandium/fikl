@@ -1,5 +1,4 @@
 from fikl.scorers import ScorerInfo, get_scorer_info_from_config
-from fikl.config import find_factor
 from fikl.proto import config_pb2
 from fikl.graph import create_graph
 from fikl.fetchers import fetch

@@ -1,4 +1,7 @@
-from typing import List
+from typing import List, Callable
+import importlib
+
+import pandas as pd
 
 
 class ExampleFetcher:
@@ -31,7 +34,7 @@ class ExampleFetcher:
         return [float(len(choice)) for choice in choices]
 
 
-def get_fetcher(path: str) -> Callable:
+def _get_fetcher(path: str) -> Callable:
     """
     Get an instance of the specific the fetcher class from the import path.
 
@@ -75,7 +78,7 @@ def fetch(sources: list[str], choices: list[str]) -> pd.DataFrame:
         a dataframe with the fetched data. The index is the choices, and the columns are the sources.
     """
     # get the fetchers
-    fetchers = [get_fetcher(source) for source in sources]
+    fetchers = [_get_fetcher(source) for source in sources]
     # fetch the data
     data = [fetcher(choices) for fetcher in fetchers]
     # ensure the data types are all floats
