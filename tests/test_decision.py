@@ -15,7 +15,7 @@ from pandas.testing import assert_frame_equal, assert_series_equal
 import numpy as np
 
 
-class TestDecisionBase(unittest.TestCase):
+class TestDecision(unittest.TestCase):
     """Tests fikl.decision.DecisionBase"""
 
     def setUp(self) -> None:
@@ -28,10 +28,6 @@ class TestDecisionBase(unittest.TestCase):
         self.expected_choices = pd.Index(
             ["one", "two", "three", "four", "five"], dtype="object", name="choice"
         )
-
-
-class TestGetSourceData(TestDecisionBase):
-    """Tests fikl.decision._get_source_data"""
 
     def test_get_source_data(self) -> None:
         """Tests fikl.decision._get_source_data"""
@@ -51,10 +47,6 @@ class TestGetSourceData(TestDecisionBase):
         expected = expected.sort_index(axis=1)
         assert_frame_equal(source_data, expected)
 
-
-class TestGetMeasureData(TestDecisionBase):
-    """Tests fikl.decision._get_measure_data"""
-
     def test_get_measure_data(self) -> None:
         """Tests fikl.decision._get_measure_data"""
         source_data = fikl.decision._get_source_data(self.config, self.raw_path)
@@ -72,3 +64,17 @@ class TestGetMeasureData(TestDecisionBase):
             index=self.expected_choices,
         )
         assert_frame_equal(measure_data, expected)
+
+    def test_get_weights(self) -> None:
+        """Tests fikl.decision._get_weights"""
+        weights = fikl.decision._get_weights(self.config)
+        expected = pd.DataFrame(
+            data=[
+                [1.0 / 3.0, 1.0 / 3.0, 0.0, 1.0 / 3.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.67, 0.33, 0.0],
+            ],
+            columns=["Cost", "Size", "Looks", "Economy", "Power", "smart", "fun", "final"],
+            index=pd.Index(["smart", "fun", "final"], dtype="object", name="metric"),
+        )
+        assert_frame_equal(weights, expected)
