@@ -1,13 +1,13 @@
 metrics:
     -   name: smart
         factors:
-            - {name: cost, weight: 1.0}
-            - {name: size, weight: 1.0}
-            - {name: economy, weight: 1.0}
+            - {name: Cost, weight: 1.0}
+            - {name: Size, weight: 1.0}
+            - {name: Economy, weight: 1.0}
     -   name: fun
         factors:
-            - {name: looks, weight: 1.0}
-            - {name: power2, weight: 1.0}
+            - {name: Looks, weight: 1.0}
+            - {name: Power, weight: 1.0}
     -   name: final
         factors:
             - {name: smart, weight: 0.67}
