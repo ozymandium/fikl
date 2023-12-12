@@ -237,11 +237,7 @@ class Decision:
             the final results. the index is the choice name, the columns are the metrics. values are
             floats between 0 and 1.
         """
-        # get the final metric results
-        final_results = self.data[self.config.final]
-        # sort the results
-        final_results = final_results.sort_values(ascending=False)
-        return final_results
+        return self.data[self.config.final]
 
     def answer(self) -> str:
         """
@@ -252,4 +248,4 @@ class Decision:
         str
             the top choice for the final metric
         """
-        return self.final().index[0]
+        return self.final().idxmax()
