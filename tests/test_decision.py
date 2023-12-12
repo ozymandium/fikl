@@ -117,4 +117,11 @@ class TestDecision(unittest.TestCase):
         decision = fikl.decision.Decision(self.config, self.raw_path)
         expected = "five"
         self.assertEqual(decision.answer(), expected)
-        
+
+    def test_scorer_info_source_order(self) -> None:
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        self.assertEqual([entry.source for entry in decision.scorer_info], decision.sources())
+
+    def test_scorer_info_measure_order(self) -> None:
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        self.assertEqual([entry.measure for entry in decision.scorer_info], decision.measures())

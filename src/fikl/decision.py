@@ -199,6 +199,12 @@ class Decision:
         the columns are the sources, measures, and metrics. this is a heterogeneous dataframe, so
         the source columns are not constrained, and the measure/metric columns will be floats
         between 0 and 1.
+
+    config : config_pb2.Config
+        the config protobuf
+
+    scorer_info : list[ScorerInfo]
+        list of scorer info objects
     """
 
     def __init__(self, config: config_pb2, raw_path: str):
@@ -216,8 +222,8 @@ class Decision:
         """
         self.graph = create_graph(config)
         source_data = _get_source_data(config, raw_path)
-        scorer_info = get_scorer_info_from_config(config)
-        measure_data = _get_measure_data(source_data, scorer_info)
+        self.scorer_info = get_scorer_info_from_config(config)
+        measure_data = _get_measure_data(source_data, self.scorer_info)
         weights = _get_weights(config)
         metric_eval_order = list(nx.topological_sort(self.graph))
         metric_results = _get_metric_results(measure_data, weights, metric_eval_order)
@@ -249,3 +255,58 @@ class Decision:
             the top choice for the final metric
         """
         return self.final().idxmax()
+
+    def sources(self) -> List[str]:
+        """
+        Get the names of all sources.
+
+        Returns
+        -------
+        List[str]
+            the names of all sources
+        """
+        return [measure.source for measure in self.config.measures]
+
+    def measures(self) -> List[str]:
+        """
+        Get the names of all measures.
+
+        Returns
+        -------
+        List[str]
+            the names of all measures
+        """
+        return [measure.name for measure in self.config.measures]
+
+    def metrics(self) -> List[str]:
+        """
+        Get the names of all metrics.
+
+        Returns
+        -------
+        List[str]
+            the names of all metrics
+        """
+        return [metric.name for metric in self.config.metrics]
+
+    def measure_docs(self) -> List[str]:
+        """
+        Get the docs for all measures.
+
+        Returns
+        -------
+        List[str]
+            the docs for all measures
+        """
+        return [measure.doc for measure in self.config.measures]
+
+    def scorer_docs(self) -> List[str]:
+        """
+        Get the docs for all scorers.
+
+        Returns
+        -------
+        List[str]
+            the docs for all scorers
+        """
+        return [entry.scorer.doc() for entry in self.scorer_info]
