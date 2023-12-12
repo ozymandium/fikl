@@ -85,7 +85,7 @@ def _get_measure_data(source_data: pd.DataFrame, scorer_info: list[ScorerInfo]) 
         index=source_data.index, columns=[entry.measure for entry in scorer_info]
     )
     for entry in scorer_info:
-        measure_data[entry.measure] = entry.scorer.score(source_data[entry.source])
+        measure_data[entry.measure] = entry.scorer(source_data[entry.source])
     return measure_data
 
 
@@ -189,71 +189,7 @@ class Decision:
         the columns are the sources, measures, and metrics. this is a heterogeneous dataframe, so
         the source columns are not constrained, and the measure/metric columns will be floats
         between 0 and 1.
-
-    Methods
-    -------
-    choices() -> list[str]
-        Get the list of choice names
-    metrics() -> list[str]
-        Get the list of metric names
     """
-
-    # @staticmethod
-    # def _get_factor_docs(config: config_pb2.Config) -> dict[str, dict[str, str]]:
-    #     """
-    #     Get the documentation for each factor for each metric.
-
-    #     Parameters
-    #     ----------
-    #     config : dict
-    #         dict of config values
-
-    #     Returns
-    #     -------
-    #     dict[str, dict[str, str]]
-    #         dict of docs for each factor for each metric
-    #         key: metric name
-    #         value: dict of docs for each factor
-    #             key: factor name
-    #             value: str
-    #     """
-    #     factor_docs = {}
-    #     for metric_pb in config.metrics:
-    #         factor_docs[metric_pb.name] = {}
-    #         for factor_nw in metric_pb.factors:
-    #             factor_pb = find_factor(config, factor_nw.name)
-    #             factor_docs[metric_pb.name][factor_nw.name] = factor_pb.doc
-    #     return factor_docs
-
-    # @staticmethod
-    # def _get_scorer_docs(scorers: dict[str, dict[str, ScorerInfo]]) -> dict[str, dict[str, str]]:
-    #     """
-    #     Get the documentation for each scorer for each metric.
-
-    #     Parameters
-    #     ----------
-    #     scorers : dict[str, dict[str, ScorerInfo]]
-    #         dict of scorers for each metric
-    #         key: metric name
-    #         value: dict of scorers for each factor
-    #             key: factor name
-    #             value: ScorerInfo
-
-    #     Returns
-    #     -------
-    #     dict[str, dict[str, str]]
-    #         dict of docs for each scorer for each metric
-    #         key: metric name
-    #         value: dict of docs for each scorer
-    #             key: factor name
-    #             value: str
-    #     """
-    #     scorer_docs = {}
-    #     for metric, metric_scorers in scorers.items():
-    #         scorer_docs[metric] = {}
-    #         for factor_name, (source, scorer) in metric_scorers.items():
-    #             scorer_docs[metric][factor_name] = scorer.doc()
-    #     return scorer_docs
 
     def __init__(self, config: config_pb2, raw_path: str):
         """
@@ -268,15 +204,13 @@ class Decision:
         -------
         Decision
         """
-        logger = logging.getLogger()
-
         self.graph = create_graph(config)
-        source_data = self._get_source_data(config, raw_path, scorers)
+        source_data = _get_source_data(config, raw_path)
         scorer_info = get_scorer_info_from_config(config)
-        measure_data = self._get_measure_data(source_data, scorer_info)
-        weights = self._get_weights(config)
+        measure_data = _get_measure_data(source_data, scorer_info)
+        weights = _get_weights(config)
         metric_eval_order = list(nx.topological_sort(self.graph))
-        metric_results = self._get_metric_results(measure_data, weights, metric_eval_order)
+        metric_results = _get_metric_results(measure_data, weights, metric_eval_order)
 
         # store dataframe with all data
         self.data = pd.concat([source_data, measure_data, metric_results], axis=1)
