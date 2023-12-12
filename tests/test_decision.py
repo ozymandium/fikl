@@ -9,10 +9,12 @@ import pprint
 import fikl.decision
 import fikl.config
 import fikl.scorers
+import fikl.graph
 
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_series_equal
 import numpy as np
+import networkx as nx
 
 
 class TestDecision(unittest.TestCase):
@@ -78,3 +80,24 @@ class TestDecision(unittest.TestCase):
             index=pd.Index(["smart", "fun", "final"], dtype="object", name="metric"),
         )
         assert_frame_equal(weights, expected)
+
+    def test_get_metric_results(self) -> None:
+        """Tests fikl.decision._get_metric_results"""
+        source_data = fikl.decision._get_source_data(self.config, self.raw_path)
+        scorer_info = fikl.scorers.get_scorer_info_from_config(self.config)
+        measure_data = fikl.decision._get_measure_data(source_data, scorer_info)
+        weights = fikl.decision._get_weights(self.config)
+        metric_eval_order = list(nx.topological_sort(fikl.graph.create_graph(self.config)))
+        metric_results = fikl.decision._get_metric_results(measure_data, weights, metric_eval_order)
+        expected = pd.DataFrame(
+            data=[
+                [0.4666666666666667, 0.05, 0.32916666666666666],
+                [0.5166666666666667, 0.225, 0.4204166666666667],
+                [0.5, 0.4, 0.467],
+                [0.55, 0.575, 0.55825],
+                [0.5333333333333333, 0.75, 0.6048333333333333],
+            ],
+            columns=["smart", "fun", "final"],
+            index=self.expected_choices,
+        )
+        assert_frame_equal(metric_results, expected)
