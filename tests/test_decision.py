@@ -105,17 +105,18 @@ class TestDecision(unittest.TestCase):
     def test_final(self) -> None:
         """Tests fikl.decision.final"""
         decision = fikl.decision.Decision(self.config, self.raw_path)
-        expected = pd.Series(
+        expected = pd.DataFrame(
             data=[0.32916666666666666, 0.4204166666666667, 0.467, 0.55825, 0.6048333333333333],
             index=self.expected_choices,
-            name="final",
+            columns=["final"],
         )
-        assert_series_equal(decision.final(), expected)
+        assert_frame_equal(decision.final_table(), expected)
 
     def test_answer(self) -> None:
         """Tests fikl.decision.answer"""
         decision = fikl.decision.Decision(self.config, self.raw_path)
         expected = "five"
+        self.assertEqual(type(decision.answer()), str)
         self.assertEqual(decision.answer(), expected)
 
     def test_scorer_info_source_order(self) -> None:

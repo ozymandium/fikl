@@ -352,7 +352,8 @@ class Decision:
         str
             the top choice for the final metric
         """
-        return self.final_table().idxmax()
+        # pull out the actual value
+        return self.final_table().idxmax()[0]
 
     def metrics_tables(self) -> List[pd.DataFrame]:
         """
@@ -374,7 +375,7 @@ class Decision:
     def ignored_metrics(self) -> List[str]:
         """
         Get a list of metrics that were ignored because they were not included in the final metric,
-        or in any metric used by the final metric. Use the graph to work backwards from the final 
+        or in any metric used by the final metric. Use the graph to work backwards from the final
         metric to find all metrics that are not used.
 
         Returns
@@ -382,7 +383,11 @@ class Decision:
         List[str]
             a list of metrics that were ignored because they were not included in the final metric
         """
-        return [metric for metric in self.metrics() if not nx.has_path(self.graph, metric, self.config.final)]
+        return [
+            metric
+            for metric in self.metrics()
+            if not nx.has_path(self.graph, metric, self.config.final)
+        ]
 
     def ignored_measures(self) -> List[str]:
         """
@@ -394,4 +399,8 @@ class Decision:
         List[str]
             a list of measures that were ignored because they were not included in any metric
         """
-        return [measure for measure in self.measures() if not nx.has_path(self.graph, measure, self.config.final)]
+        return [
+            measure
+            for measure in self.measures()
+            if not nx.has_path(self.graph, measure, self.config.final)
+        ]

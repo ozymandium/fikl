@@ -82,17 +82,17 @@ class TestLoad(unittest.TestCase):
         self.assertEqual(
             config.metrics[0].factors,
             [
-                config_pb2.Factor(name="cost", weight=1.0),
-                config_pb2.Factor(name="size", weight=1.0),
-                config_pb2.Factor(name="economy", weight=1.0),
+                config_pb2.Factor(name="Cost", weight=1.0),
+                config_pb2.Factor(name="Size", weight=1.0),
+                config_pb2.Factor(name="Economy", weight=1.0),
             ],
         )
         self.assertEqual(config.metrics[1].name, "fun")
         self.assertEqual(
             config.metrics[1].factors,
             [
-                config_pb2.Factor(name="looks", weight=1.0),
-                config_pb2.Factor(name="power2", weight=1.0),
+                config_pb2.Factor(name="Looks", weight=1.0),
+                config_pb2.Factor(name="Power", weight=1.0),
             ],
         )
         self.assertEqual(config.metrics[2].name, "final")

@@ -356,12 +356,8 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     #     metric for metric in decision.metrics() if metric not in decision.final_weights
     # ]
 
-
     # sort the final table by the final score
-    final_table = _table_to_html(
-        decision.final_table(sort=True),
-        color_score=True, percent=True
-    )
+    final_table = _table_to_html(decision.final_table(sort=True), color_score=True, percent=True)
 
     # dump the html blobs into a template
     html = fill_template(
