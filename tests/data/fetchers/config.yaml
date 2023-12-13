@@ -1,5 +1,5 @@
-factors:
--   name: string length
+measures:
+-   name: String length
     # when the source is not a column in data.csv, it is assumed to be a fetcher.
     # fikl will attempt to import `fikl.fetchers` and instantiate a `ExampleFetcher` object from it.
     # if that succeeds, the fetcher's __call__ method will be invoked with the first column of 
@@ -9,6 +9,5 @@ factors:
 metrics:
 -   name: string length
     factors:
-        - {name: string length, weight: 1.0}
-final:
-- {name: string length, weight: 1.0}
+        - {name: String length, weight: 1.0}
+final: string length

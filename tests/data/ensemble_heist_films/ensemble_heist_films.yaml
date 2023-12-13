@@ -1,37 +1,37 @@
 measures:
-    -   name: actors
+    -   name: Actors
         source: actors
         scoring: {relative: {invert: true}}
-    -   name: rotten_tomatoes
+    -   name: Rotten Tomatoes
         source: rotten tomatoes
         scoring: {range: {best: 100.0, worst: 0.0}}
-    -   name: sam
+    -   name: Sam
         source: sam
         scoring: {star: {min: 1, max: 5}}
-    -   name: john
+    -   name: John
         source: john
         scoring: {star: {min: 1, max: 5}}
-    -   name: henry
+    -   name: Henry
         source: henry
         scoring: {star: {min: 1, max: 5}}
-    -   name: jane
+    -   name: Jane
         source: jane
         scoring: {star: {min: 1, max: 5}}
-    -   name: lighthearted
+    -   name: Lighthearted
         source: lighthearted
         scoring: {star: {min: 0, max: 1}}
 metrics:
     -   name: personal
         factors:
-            - {name: john, weight: 1.0}
-            - {name: sam, weight: 1.0}
-            - {name: henry, weight: 1.0}
-            - {name: jane, weight: 1.0}
+            - {name: John, weight: 1.0}
+            - {name: Sam, weight: 1.0}
+            - {name: Henry, weight: 1.0}
+            - {name: Jane, weight: 1.0}
     -   name: critical
         factors:
-            - {name: rotten_tomatoes, weight: 1.0}
-            - {name: actors, weight: 1.0}
-            - {name: lighthearted, weight: 1.0}
+            - {name: Rotten Tomatoes, weight: 1.0}
+            - {name: Actors, weight: 1.0}
+            - {name: Lighthearted, weight: 1.0}
     -   name: final
         factors:
         - {name: personal, weight: 0.5}

@@ -229,62 +229,62 @@ def _table_to_html(
     return styler.to_html()
 
 
-def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: str) -> str:
-    """
-    use matplotlib to generate a chart for a row in decision.metric_weights to show the
-    relative weights of each factor for a given metric. remove all columns that have a weight of
-    0. save the chart as a png in the assets_dir. return the relative path to the png file within
-    the assets_dir.
+# def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: str) -> str:
+#     """
+#     use matplotlib to generate a chart for a row in decision.metric_weights to show the
+#     relative weights of each factor for a given metric. remove all columns that have a weight of
+#     0. save the chart as a png in the assets_dir. return the relative path to the png file within
+#     the assets_dir.
 
-    Parameters
-    ----------
-    metric : str
-        the metric to generate the pie chart for
-    assets_dir : str
-        folder to stick html assets
+#     Parameters
+#     ----------
+#     metric : str
+#         the metric to generate the bar chart for
+#     assets_dir : str
+#         folder to stick html assets
 
-    Returns
-    -------
-    str
-        relative path to the png file
-    """
-    # get the weights for the given metric
-    weights = decision.metric_weights.loc[metric]
-    # remove all columns that have a weight of 0
-    weights = weights[weights != 0.0]
-    # get the labels for the pie chart
-    labels = weights.index
-    # get the values for the pie chart as percentages
-    values = 100 * weights.values
-    # # get the colors for the pie chart
-    # colors = sns.color_palette("deep", len(labels))
+#     Returns
+#     -------
+#     str
+#         relative path to the png file
+#     """
+#     # get the weights for the given metric
+#     weights = decision.metric_weights.loc[metric]
+#     # remove all columns that have a weight of 0
+#     weights = weights[weights != 0.0]
+#     # get the labels for the bar chart
+#     labels = weights.index
+#     # get the values for the bar chart as percentages
+#     values = 100 * weights.values
+#     # # get the colors for the bar chart
+#     # colors = sns.color_palette("deep", len(labels))
 
-    # generate the horizontal chart
-    fig, ax = plt.subplots()
-    ax.barh(labels, values)
-    # disable x axis
-    ax.xaxis.set_visible(False)
-    # show the values of each bar as a right hand y axis label. each label should be outside of the
-    # chart area. format as a percentage.
-    right_yax = ax.twinx()
-    right_yax.set_yticklabels([f"{v:.0f}%" for v in values], ha="left")
-    # set ytick locations to be the same as the bar locations
-    right_yax.set_yticks(ax.get_yticks())
-    # set the limits of the right y axis to be the same as the left y axis
-    right_yax.set_ylim(ax.get_ylim())
+#     # generate the horizontal chart
+#     fig, ax = plt.subplots()
+#     ax.barh(labels, values)
+#     # disable x axis
+#     ax.xaxis.set_visible(False)
+#     # show the values of each bar as a right hand y axis label. each label should be outside of the
+#     # chart area. format as a percentage.
+#     right_yax = ax.twinx()
+#     right_yax.set_yticklabels([f"{v:.0f}%" for v in values], ha="left")
+#     # set ytick locations to be the same as the bar locations
+#     right_yax.set_yticks(ax.get_yticks())
+#     # set the limits of the right y axis to be the same as the left y axis
+#     right_yax.set_ylim(ax.get_ylim())
 
-    # tight fit to make sure the labels aren't cut off
-    fig.tight_layout()
+#     # tight fit to make sure the labels aren't cut off
+#     fig.tight_layout()
 
-    # save to png
-    png_abs_path = os.path.join(assets_dir, f"{metric}.png")
-    fig.savefig(png_abs_path)
+#     # save to png
+#     png_abs_path = os.path.join(assets_dir, f"{metric}.png")
+#     fig.savefig(png_abs_path)
 
-    # convert to html
-    # want it to be relative to the html file, so use a relative path
-    png_rel_path = os.path.relpath(png_abs_path, os.path.dirname(assets_dir))
+#     # convert to html
+#     # want it to be relative to the html file, so use a relative path
+#     png_rel_path = os.path.relpath(png_abs_path, os.path.dirname(assets_dir))
 
-    return png_rel_path
+#     return png_rel_path
 
 
 def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
@@ -311,70 +311,65 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
         os.makedirs(assets_dir, exist_ok=True)
 
-    raw_table = _table_to_html(decision.raw)
+    # source_table = _table_to_html(decision.source_table())
 
-    # scores dataframes include columns for factors that are ignored, so remove those
-    scores_tables = {}
-    for metric in decision.metrics():
-        df = decision.scores[metric].copy()
-        # a factor is ignored for this metric if it does not appear in the metric weights table
-        # as a column for this metric
-        ignored_factors = [
-            factor for factor in decision.all_factors() if factor not in decision.metric_weights
-        ]
-        df = df.drop(columns=ignored_factors)
-        scores_tables[metric] = _table_to_html(df, color_score=True, percent=True)
+    # # scores dataframes include columns for factors that are ignored, so remove those
+    # scores_tables = {}
+    # for metric in decision.metrics():
+    #     df = decision.scores[metric].copy()
+    #     # a factor is ignored for this metric if it does not appear in the metric weights table
+    #     # as a column for this metric
+    #     ignored_factors = [
+    #         factor for factor in decision.all_factors() if factor not in decision.metric_weights
+    #     ]
+    #     df = df.drop(columns=ignored_factors)
+    #     scores_tables[metric] = _table_to_html(df, color_score=True, percent=True)
 
-    results_table = _table_to_html(decision.metric_results, color_score=True, percent=True)
-    weights_table = _table_to_html(decision.metric_weights, color_score=True, percent=True)
-    weight_charts = {
-        metric: _metrics_weight_chart_to_png(decision, metric, assets_dir)
-        for metric in decision.metrics()
-    }
-    factor_descriptions = {
-        metric: {
-            factor: html_from_doc(decision.factor_docs[metric][factor])
-            for factor in decision.factor_docs[metric]
-        }
-        for metric in decision.factor_docs
-    }
-    factor_scorings = {
-        metric: {
-            factor: html_from_doc(decision.scorer_docs[metric][factor])
-            for factor in decision.scorer_docs[metric]
-        }
-        for metric in decision.scorer_docs
-    }
-    final_results_table = _table_to_html(decision.final_results, color_score=True, percent=True)
-    final_weights_table = _table_to_html(decision.final_weights, color_score=True, percent=True)
+    # results_table = _table_to_html(decision.metric_results, color_score=True, percent=True)
+    # weights_table = _table_to_html(decision.metric_weights, color_score=True, percent=True)
+    # weight_charts = {
+    #     metric: _metrics_weight_chart_to_png(decision, metric, assets_dir)
+    #     for metric in decision.metrics()
+    # }
+    # factor_descriptions = {
+    #     metric: {
+    #         factor: html_from_doc(decision.factor_docs[metric][factor])
+    #         for factor in decision.factor_docs[metric]
+    #     }
+    #     for metric in decision.factor_docs
+    # }
+    # factor_scorings = {
+    #     metric: {
+    #         factor: html_from_doc(decision.scorer_docs[metric][factor])
+    #         for factor in decision.scorer_docs[metric]
+    #     }
+    #     for metric in decision.scorer_docs
+    # }
+    # final_weights_table = _table_to_html(decision.final_weights, color_score=True, percent=True)
 
-    # a factor is ignored if all values in its column in the metric weights table are 0
-    ignored_factors = [
-        factor for factor in decision.all_factors() if all(decision.metric_weights[factor] == 0.0)
-    ]
-    # a metric is ignored if it does not appear in the final weights table
-    ignored_metrics = [
-        metric for metric in decision.metrics() if metric not in decision.final_weights
-    ]
+    # # a factor is ignored if all values in its column in the metric weights table are 0
+    # ignored_factors = [
+    #     factor for factor in decision.all_factors() if all(decision.metric_weights[factor] == 0.0)
+    # ]
+    # # a metric is ignored if it does not appear in the final weights table
+    # ignored_metrics = [
+    #     metric for metric in decision.metrics() if metric not in decision.final_weights
+    # ]
+
+
+    # sort the final table by the final score
+    final_table = _table_to_html(
+        decision.final_table(sort=True),
+        color_score=True, percent=True
+    )
 
     # dump the html blobs into a template
     html = fill_template(
         "index",
-        raw_table=raw_table,
-        scores_tables=scores_tables,
-        results_table=results_table,
-        weights_table=weights_table,
-        weight_charts=weight_charts,
-        factor_descriptions=factor_descriptions,
-        factor_scorings=factor_scorings,
-        metric_factors=decision.metric_factors(),
-        ignored_factors=ignored_factors,
-        ignored_metrics=ignored_metrics,
         answer=decision.answer(),
-        final_results_table=final_results_table,
-        final_weights_table=final_weights_table,
+        final_table=final_table,
     )
-    html = add_toc(html)
+    # html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()
 
     if path is None:
