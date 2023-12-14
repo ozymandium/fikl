@@ -5,9 +5,13 @@ measures:
     # if that succeeds, the fetcher's __call__ method will be invoked with the first column of 
     # data.csv as its argument.
     source: fikl.fetchers.ExampleFetcher
+    scoring: {relative: {invert: false}}
+-   name: String length inverted
+    source: fikl.fetchers.ExampleFetcher
     scoring: {relative: {invert: true}}
 metrics:
--   name: string length
+-   name: mix
     factors:
         - {name: String length, weight: 1.0}
-final: string length
+        - {name: String length inverted, weight: 2.0}
+final: mix

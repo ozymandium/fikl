@@ -349,7 +349,12 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     metrics_weight_tables = _reorder_list(metrics_weight_tables, metric_order)
 
     measures_table = _table_to_html(decision.measures_table(), color_score=True, percent=True)
-    sources_table = _table_to_html(decision.sources_table(), color_score=False, percent=False)
+
+    # FIXME: remove duplicate columns from sources table in Decision, instead of hacking it here
+    sources_table = decision.sources_table()
+    # remove duplicate columns
+    sources_table = sources_table.loc[:, ~sources_table.columns.duplicated()]
+    sources_table = _table_to_html(sources_table, color_score=False, percent=False)
 
     sources_per_measure = [measure.source for measure in decision.config.measures]
 
