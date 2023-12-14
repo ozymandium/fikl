@@ -134,8 +134,8 @@ class TestDecision(unittest.TestCase):
         decision = fikl.decision.Decision(self.config, self.raw_path)
         self.assertEqual(decision.metric_print_order(), [2, 1, 0])
 
-    def test_get_metric_weights(self) -> None:
-        """Tests fikl.Decision.metric_weights"""
+    def test_get_metric_weight_tables(self) -> None:
+        """Tests fikl.Decision.metric_weight_tables"""
         decision = fikl.decision.Decision(self.config, self.raw_path)
         expected = [
             pd.Series(
@@ -154,7 +154,7 @@ class TestDecision(unittest.TestCase):
                 name="final",
             ),
         ]
-        result = decision.metric_weights()
+        result = decision.metrics_weight_tables()
         self.assertEqual(len(result), len(expected))
-        for metric, expected in zip(decision.metric_weights(), expected):
-            assert_series_equal(metric, expected)
+        for i in range(len(result)):
+            assert_series_equal(result[i], expected[i])

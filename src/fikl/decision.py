@@ -372,7 +372,7 @@ class Decision:
             ret.append(metric_table)
         return ret
 
-    def metric_weights(self) -> List[pd.Series]:
+    def metrics_weight_tables(self) -> List[pd.Series]:
         """
         Get the weights for each metric. Order is the same as the order of metrics returned by
         Decision.metrics(). Each entry in the list is a series of weights for each factor for that

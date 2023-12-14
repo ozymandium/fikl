@@ -11,6 +11,10 @@ metrics : list[str]
   List of the names of the metrics.
 metrics_tables : list[str]
   List of HTML tables with the scores of each choice for each metric's factors
+metrics_weight_tables : list[str]
+  List of HTML tables with the weights of each metric's factors
+ignored_metrics : list[str]
+  List of the names of the metrics that were ignored.
 #}
 <!DOCTYPE html>
 <html>
@@ -55,25 +59,28 @@ metrics_tables : list[str]
   </p> #}
 
   <h1>Metrics</h1>
-  {# <p>
-    {% if ignored_factors|length > 0 %}
-      The following factors are not included in any metric:
-      <ol>
-      {% for ignored_factor in ignored_factors %}
-        <li>{{ignored_factor}}</li>
-      {% endfor %}
-      </ol>
-    {% else %}
-      <b>Ignored Factors</b>: all factors are included in at least one metric!
-    {% endif %}
-  </p> #}
 
   {% for metric in metrics %}
     <h2>{{metric}}</h2>
     <div class="table-container">
       {{metrics_tables[loop.index0]}}
     </div>
+    <div>
+      <img src="{{metrics_weight_tables[loop.index0]}}" alt="{{metric}}" style="max-width: 100%; max-height: 30%; object-fit: contain;"/>
+    </div>
   {% endfor %}
+
+  {% if ignored_metrics|length > 0 %}
+    <h2>Ignored Metrics</h2>
+    <p>
+      The following metrics are not used to compute the final selection:
+      <ol>
+      {% for ignored_metric in ignored_metrics %}
+        <li>{{ignored_metric}}</li>
+      {% endfor %}
+      </ol>
+    </p>
+  {% endif %}
 
   {# <h1>Raw Data</h1>
   <div class="table-container">
