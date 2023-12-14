@@ -401,8 +401,53 @@ class Range(Interpolate):
             """
 
 
+class Bool:
+    """Scorer that assigns a boolean value to either 0% or 100%."""
+
+    CODE = "bool"
+    DTYPE = bool
+
+    def __init__(self, good: bool):
+        """
+        Parameters
+        ----------
+        good : bool
+            whether true is good or bad. if true, then true will be assigned 100% and false will be
+            assigned 0%. if false, then true will be assigned 0% and false will be assigned 100%.
+        """
+        self.good = good
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Bool):
+            return False
+        return self.good == other.good
+
+    def __call__(self, col: pd.Series) -> pd.Series:
+        """
+        Parameters
+        ----------
+        col : pd.Series
+            the column to score
+
+        Returns
+        -------
+        pd.Series
+            the scored column, with values between 0 and 1
+        """
+        # make sure all values are DTYPE. if not, try to cast them to DTYPE and log a warning.
+        if not col.dtype == self.DTYPE:
+            raise TypeError(
+                f"column dtype is {col.dtype} but scorer {self} requires dtype {self.DTYPE}"
+            )
+        # compute the return
+        if self.good:
+            return col.astype(float)
+        else:
+            return (~col).astype(float)
+
+
 # FIXME: this is kinda ugly, do an import / module getattr in Decision instead?
-_SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range]
+_SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range, Bool]
 _LOOKUP = {scorer_type.CODE: scorer_type for scorer_type in _SCORER_TYPES}
 
 
