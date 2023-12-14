@@ -292,7 +292,7 @@ class Decision:
         """
         return [entry.scorer.doc() for entry in self.scorer_info]
 
-    def source_table(self) -> pd.DataFrame:
+    def sources_table(self) -> pd.DataFrame:
         """
         Get the source table. This is the raw data that was input by the user, plus any data that
         was fetched. The index is the choice name, the columns are the sources.
@@ -304,7 +304,7 @@ class Decision:
         """
         return self.data[self.sources()]
 
-    def measure_table(self) -> pd.DataFrame:
+    def measures_table(self) -> pd.DataFrame:
         """
         Get the measure table. This is the results of all measures. The index is the choice name,
         the columns are the measures.

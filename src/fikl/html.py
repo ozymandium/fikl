@@ -348,6 +348,15 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     ]
     metrics_weight_tables = _reorder_list(metrics_weight_tables, metric_order)
 
+    measures_table = _table_to_html(decision.measures_table(), color_score=True, percent=True)
+    sources_table = _table_to_html(decision.sources_table(), color_score=False, percent=False)
+
+    sources_per_measure = [measure.source for measure in decision.config.measures]
+
+    # get the docs
+    measure_docs = [html_from_doc(measure.doc) for measure in decision.config.measures]
+    scorer_docs = [html_from_doc(doc) for doc in decision.scorer_docs()]
+
     # dump the html blobs into a template
     html = fill_template(
         "index",
@@ -357,6 +366,12 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         metrics_tables=metrics_tables,
         metrics_weight_tables=metrics_weight_tables,
         ignored_metrics=decision.ignored_metrics(),
+        measures_table=measures_table,
+        sources_table=sources_table,
+        measures=decision.measures(),
+        sources_per_measure=sources_per_measure,
+        measure_docs=measure_docs,
+        scorer_docs=scorer_docs,
     )
     html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()

@@ -15,6 +15,19 @@ metrics_weight_tables : list[str]
   List of HTML tables with the weights of each metric's factors
 ignored_metrics : list[str]
   List of the names of the metrics that were ignored.
+measures_table : str
+  HTML. Table with the measures of each choice.
+sources_table : str
+  HTML. Table with the sources of each choice.
+measures : list[str]
+  List of the names of the measures.
+sources_per_measure : list[str]
+  List of the sources of each measure, order matches `measures`, not order of sources in 
+  `sources_table`.
+measure_docs : list[str]
+  List of the HTML descriptions of each measure, order matches `measures`.
+scorer_docs : list[str]
+  List of the HTML descriptions of each scorer, order matches `measures`.
 #}
 <!DOCTYPE html>
 <html>
@@ -82,33 +95,33 @@ ignored_metrics : list[str]
     </p>
   {% endif %}
 
-  {# <h1>Raw Data</h1>
+  <h1>Measures</h1>
   <div class="table-container">
-    {{raw_table}}
-  </div> #}
+    {{measures_table}}
+  </div>
+
+  {% for measure in measures %}
+    <h2>{{measure}}</h2>
+      <p>
+        <b>Source</b>: <code>{{sources_per_measure[loop.index0]}}</code>
+      </p>
+        {% if measure_docs[loop.index0] %}
+          <p>
+            <b>Description</b>:
+            {{measure_docs[loop.index0]}}
+          </p>
+        {% endif %}
+      <p>
+        <b>Scoring</b>:
+        {{scorer_docs[loop.index0]}}
+      </p>
+  {% endfor %}
+
+
+  <h1>Sources</h1>
+  <div class="table-container">
+    {{sources_table}}
+  </div>
   
-  {# <div>
-    <h1>Metrics & Scoring Explanation</h1>
-    <div class="table-container">
-      {{weights_table}}
-    </div>
-    {% for metric in metric_factors %}
-      <div>
-        <h2>{{metric}}</h2>
-        <div>
-          <img src="{{weight_charts[metric]}}" alt="{{metric}}" style="max-width: 100%; object-fit: contain;"/>
-        </div>
-        {% for factor in metric_factors[metric] %}
-          <h3>{{factor}}</h3>
-          <div>
-            <h4>Description</h4>
-            <div>{{factor_descriptions[metric][factor]}}</div>
-            <h4>Scoring</h4>
-            <div>{{factor_scorings[metric][factor]}}</div>
-          </div>
-        {% endfor %}
-      </div> 
-    {% endfor %}
-  </div> #}
 </body>
 </html>

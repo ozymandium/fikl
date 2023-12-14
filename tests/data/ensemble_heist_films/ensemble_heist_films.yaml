@@ -2,6 +2,8 @@ measures:
     -   name: Actors
         source: actors
         scoring: {relative: {invert: true}}
+        doc: |
+            # of A-list actors
     -   name: Rotten Tomatoes
         source: rotten tomatoes
         scoring: {range: {best: 100.0, worst: 0.0}}
