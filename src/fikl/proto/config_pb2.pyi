@@ -69,18 +69,26 @@ class RangeScorerConfig(_message.Message):
     worst: float
     def __init__(self, best: _Optional[float] = ..., worst: _Optional[float] = ...) -> None: ...
 
+class BoolScorerConfig(_message.Message):
+    __slots__ = ("good",)
+    GOOD_FIELD_NUMBER: _ClassVar[int]
+    good: bool
+    def __init__(self, good: bool = ...) -> None: ...
+
 class Scoring(_message.Message):
-    __slots__ = ("star", "bucket", "relative", "interpolate", "range")
+    __slots__ = ("star", "bucket", "relative", "interpolate", "range", "bool")
     STAR_FIELD_NUMBER: _ClassVar[int]
     BUCKET_FIELD_NUMBER: _ClassVar[int]
     RELATIVE_FIELD_NUMBER: _ClassVar[int]
     INTERPOLATE_FIELD_NUMBER: _ClassVar[int]
     RANGE_FIELD_NUMBER: _ClassVar[int]
+    BOOL_FIELD_NUMBER: _ClassVar[int]
     star: StarScorerConfig
     bucket: BucketScorerConfig
     relative: RelativeScorerConfig
     interpolate: InterpolateScorerConfig
     range: RangeScorerConfig
+    bool: BoolScorerConfig
     def __init__(
         self,
         star: _Optional[_Union[StarScorerConfig, _Mapping]] = ...,
@@ -88,6 +96,7 @@ class Scoring(_message.Message):
         relative: _Optional[_Union[RelativeScorerConfig, _Mapping]] = ...,
         interpolate: _Optional[_Union[InterpolateScorerConfig, _Mapping]] = ...,
         range: _Optional[_Union[RangeScorerConfig, _Mapping]] = ...,
+        bool: _Optional[_Union[BoolScorerConfig, _Mapping]] = ...,
     ) -> None: ...
 
 class Measure(_message.Message):

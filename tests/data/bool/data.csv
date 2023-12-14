@@ -1,0 +1,5 @@
+choice,val1,val2
+one,true,false
+two,false,true
+three,true,true
+four,false,false

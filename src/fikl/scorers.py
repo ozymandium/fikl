@@ -445,6 +445,17 @@ class Bool:
         else:
             return (~col).astype(float)
 
+    def doc(self) -> str:
+        """Publish Markdown documentation for this scorer."""
+        if self.good:
+            return """
+                Boolean & true is good: True gets 100%, False gets 0%.
+                """
+        else:
+            return """
+                Boolean & false is good: True gets 0%, False gets 100%.
+                """
+
 
 # FIXME: this is kinda ugly, do an import / module getattr in Decision instead?
 _SCORER_TYPES = [Star, Bucket, Relative, Interpolate, Range, Bool]
