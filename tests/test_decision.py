@@ -111,6 +111,9 @@ class TestDecision(unittest.TestCase):
             columns=["final"],
         )
         assert_frame_equal(decision.final_table(), expected)
+        assert_frame_equal(
+            decision.final_table(sort=True), expected.sort_values(by="final", ascending=False)
+        )
 
     def test_answer(self) -> None:
         """Tests fikl.decision.answer"""
@@ -126,3 +129,32 @@ class TestDecision(unittest.TestCase):
     def test_scorer_info_measure_order(self) -> None:
         decision = fikl.decision.Decision(self.config, self.raw_path)
         self.assertEqual([entry.measure for entry in decision.scorer_info], decision.measures())
+
+    def test_metric_print_order(self) -> None:
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        self.assertEqual(decision.metric_print_order(), [2, 1, 0])
+
+    def test_get_metric_weights(self) -> None:
+        """Tests fikl.Decision.metric_weights"""
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        expected = [
+            pd.Series(
+                data=[1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0],
+                index=["Cost", "Size", "Economy"],
+                name="smart",
+            ),
+            pd.Series(
+                data=[0.5, 0.5],
+                index=["Looks", "Power"],
+                name="fun",
+            ),
+            pd.Series(
+                data=[0.67, 0.33],
+                index=["smart", "fun"],
+                name="final",
+            ),
+        ]
+        result = decision.metric_weights()
+        self.assertEqual(len(result), len(expected))
+        for metric, expected in zip(decision.metric_weights(), expected):
+            assert_series_equal(metric, expected)

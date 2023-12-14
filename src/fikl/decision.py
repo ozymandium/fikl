@@ -316,17 +316,17 @@ class Decision:
         """
         return self.data[self.measures()]
 
-    def metric_table(self) -> pd.DataFrame:
-        """
-        Get the metric table. This is the results of all metrics. The index is the choice name,
-        the columns are the metrics.
+    # def metrics_table(self) -> pd.DataFrame:
+    #     """
+    #     Get the metric table. This is the results of all metrics. The index is the choice name,
+    #     the columns are the metrics.
 
-        Returns
-        -------
-        pd.DataFrame
-            the metric table
-        """
-        return self.data[self.metrics()]
+    #     Returns
+    #     -------
+    #     pd.DataFrame
+    #         the metric table
+    #     """
+    #     return self.data[self.metrics()]
 
     def final_table(self, sort: bool = False) -> pd.DataFrame:
         """
@@ -366,10 +366,29 @@ class Decision:
             a dict of metric name to metric table
         """
         ret = []
-        for metric in self.metrics():
-            factors = [factor.name for factor in self.config.metrics[metric].factors]
+        for metric_idx, metric in enumerate(self.metrics()):
+            factors = [factor.name for factor in self.config.metrics[metric_idx].factors]
             metric_table = self.data[factors + [metric]]
             ret.append(metric_table)
+        return ret
+
+    def metric_weights(self) -> List[pd.Series]:
+        """
+        Get the weights for each metric. Order is the same as the order of metrics returned by
+        Decision.metrics(). Each entry in the list is a series of weights for each factor for that
+        metric. The index of the series is the factor name. Metrics which are weighted zero will
+        not be included in the list.
+
+        Returns
+        -------
+        List[pd.Series]
+            a list of series of weights for each metric
+        """
+        ret = []
+        for metric_idx, metric in enumerate(self.metrics()):
+            factors = [factor.name for factor in self.config.metrics[metric_idx].factors]
+            weights = self.weights.loc[metric][factors]
+            ret.append(weights)
         return ret
 
     def ignored_metrics(self) -> List[str]:
@@ -404,3 +423,33 @@ class Decision:
             for measure in self.measures()
             if not nx.has_path(self.graph, measure, self.config.final)
         ]
+
+    def final_metric_idx(self) -> int:
+        """
+        Get the index of the final metric within the list of metrics that is output by
+        Decision.metrics().
+
+        Returns
+        -------
+        int
+            the index of the final metric
+        """
+        return self.metrics().index(self.config.final)
+
+    def metric_print_order(self) -> List[int]:
+        """
+        Get the order in which metrics should be shown to the user. This is the reverse of the order
+        in which metrics should be evaluated. The final metric should be shown first, and
+        constituents should be shown after their dependents.
+
+        Returns
+        -------
+        List[int]
+            a list of indices into the list of metrics that is output by Decision.metrics()
+        """
+        internal_metric_names = self.metrics()
+        print_metric_names = list(reversed(list(nx.topological_sort(self.graph))))
+        # remove everything that isn't a metric
+        print_metric_names = [metric for metric in print_metric_names if metric in self.metrics()]
+        # get the indices
+        return [internal_metric_names.index(metric) for metric in print_metric_names]

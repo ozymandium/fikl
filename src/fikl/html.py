@@ -10,7 +10,7 @@ import bs4
 import re
 import uuid
 from collections import OrderedDict
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, List
 from inspect import cleandoc
 import tempfile
 
@@ -229,6 +229,25 @@ def _table_to_html(
     return styler.to_html()
 
 
+def _reorder_list(l: List, idxs: List[int]) -> List:
+    """
+    reorder a list based on a list of indices. the indices are into the original list.
+
+    Parameters
+    ----------
+    l : List
+        list to reorder
+    idxs : List[int]
+        list of indices into the original list
+
+    Returns
+    -------
+    List
+        reordered list
+    """
+    return [l[i] for i in idxs]
+
+
 # def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: str) -> str:
 #     """
 #     use matplotlib to generate a chart for a row in decision.metric_weights to show the
@@ -359,13 +378,26 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
     # sort the final table by the final score
     final_table = _table_to_html(decision.final_table(sort=True), color_score=True, percent=True)
 
+    # get the order of the metrics to print. this is a list of int indices into Decision.metrics()
+    # to use to rearrange metrics lists
+    metric_order = decision.metric_print_order()
+    # list of metric names
+    metrics = _reorder_list(decision.metrics(), metric_order)
+    # list of metric tables
+    metrics_tables = [
+        _table_to_html(table, color_score=True, percent=True) for table in decision.metrics_tables()
+    ]
+    metrics_tables = _reorder_list(metrics_tables, metric_order)
+
     # dump the html blobs into a template
     html = fill_template(
         "index",
         answer=decision.answer(),
         final_table=final_table,
+        metrics=metrics,
+        metrics_tables=metrics_tables,
     )
-    # html = add_toc(html)
+    html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()
 
     if path is None:
