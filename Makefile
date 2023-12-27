@@ -11,6 +11,7 @@ install: $(VENV_NAME)
 
 $(VENV_NAME): pyproject.toml
 	python3 -m venv $(VENV_NAME)
+	$(PIP) install --upgrade pip
 	$(PIP) install setuptools>=62.0.0
 	$(PIP) install -e .
 
@@ -34,5 +35,4 @@ ipy: $(VENV_NAME)
 	$(PYTHON) -m IPython
 
 clean:
-	deactivate
 	git clean -ffdX
