@@ -6,77 +6,34 @@ import os
 import yaml
 import pprint
 
-from fikl.decision import Decision, SourceScorer
+import fikl.decision
+import fikl.config
 import fikl.scorers
-from fikl.proto import config_pb2
-from fikl.config import load_yaml
+import fikl.graph
 
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_series_equal
 import numpy as np
+import networkx as nx
 
 
 class TestDecision(unittest.TestCase):
-    CONFIG_PATHS = [
-        os.path.join(os.path.dirname(__file__), "data", "simple", "simple.yaml"),
-        os.path.join(os.path.dirname(__file__), "data", "simple", "factors.yaml"),
-    ]
-    RAW = os.path.join(os.path.dirname(__file__), "data", "simple", "simple.csv")
+    """Tests fikl.decision.DecisionBase"""
 
     def setUp(self) -> None:
         self.maxDiff = None
-        self.config = load_yaml(*self.CONFIG_PATHS)
+        self.config = fikl.config.load_yaml(
+            os.path.join(os.path.dirname(__file__), "data", "simple", "simple.yaml"),
+            os.path.join(os.path.dirname(__file__), "data", "simple", "factors.yaml"),
+        )
+        self.raw_path = os.path.join(os.path.dirname(__file__), "data", "simple", "simple.csv")
+        self.expected_choices = pd.Index(
+            ["one", "two", "three", "four", "five"], dtype="object", name="choice"
+        )
 
-    def test_get_scorers(self) -> None:
-        scorers = Decision._get_scorers(self.config)
-        expected = {
-            "smart": {
-                "cost": SourceScorer(
-                    source="cost",
-                    scorer=fikl.scorers.Relative(invert=True),
-                ),
-                "size": SourceScorer(
-                    source="size",
-                    scorer=fikl.scorers.Interpolate(
-                        knots=[
-                            {"in": 0.0, "out": 0.0},
-                            {"in": 5.0, "out": 1.0},
-                            {"in": 10.0, "out": 0.0},
-                        ]
-                    ),
-                ),
-                "economy": SourceScorer(
-                    source="economy",
-                    scorer=fikl.scorers.Bucket(
-                        buckets=[
-                            {"min": 0.0, "max": 2.0, "val": 0.2},
-                            {"min": 2.0, "max": 4.0, "val": 0.4},
-                            {"min": 4.0, "max": 6.0, "val": 0.6},
-                            {"min": 6.0, "max": 8.0, "val": 0.8},
-                            {"min": 8.0, "max": 10.0, "val": 1.0},
-                        ]
-                    ),
-                ),
-            },
-            "fun": {
-                "looks": SourceScorer(
-                    source="looks",
-                    scorer=fikl.scorers.Star(min=1, max=5),
-                ),
-                "power2": SourceScorer(
-                    source="power",
-                    scorer=fikl.scorers.Range(best=10.0, worst=0.0),
-                ),
-            },
-        }
-        self.assertEqual(scorers.keys(), expected.keys())
-        for key in scorers.keys():
-            self.assertEqual(scorers[key].keys(), expected[key].keys())
-            for subkey in scorers[key].keys():
-                self.assertEqual(scorers[key][subkey], expected[key][subkey])
-
-    def test_get_raw(self) -> None:
-        result = Decision._get_raw(self.config, self.RAW, Decision._get_scorers(self.config))
+    def test_get_source_data(self) -> None:
+        """Tests fikl.decision._get_source_data"""
+        source_data = fikl.decision._get_source_data(self.config, self.raw_path)
         expected = pd.DataFrame(
             data=[
                 [1.0, 1.0, 1, 1.0, 1.0],
@@ -86,118 +43,118 @@ class TestDecision(unittest.TestCase):
                 [5.0, 5.0, 5, 5.0, 5.0],
             ],
             columns=["cost", "size", "looks", "economy", "power"],
-            index=pd.Index(["one", "two", "three", "four", "five"], dtype="object", name="choice"),
+            index=self.expected_choices,
         )
         # sort the columns in expected alphabetically
         expected = expected.sort_index(axis=1)
-        assert_frame_equal(result, expected)
+        assert_frame_equal(source_data, expected)
 
-    def test_get_scores(self) -> None:
-        raw = Decision._get_raw(self.config, self.RAW, Decision._get_scorers(self.config))
-        scorers = Decision._get_scorers(self.config)
-        scores = Decision._get_scores(raw, scorers)
-        expected = {
-            "smart": pd.DataFrame(
-                data=[
-                    [1.0, 0.2, 0.2],
-                    [0.75, 0.4, 0.4],
-                    [0.5, 0.6, 0.4],
-                    [0.25, 0.8, 0.6],
-                    [0.0, 1.0, 0.6],
-                ],
-                columns=["cost", "size", "economy"],
-                index=pd.Index(
-                    ["one", "two", "three", "four", "five"], dtype="object", name="choice"
-                ),
-            ),
-            "fun": pd.DataFrame(
-                data=[
-                    [0.0, 0.1],
-                    [0.25, 0.2],
-                    [0.5, 0.3],
-                    [0.75, 0.4],
-                    [1.0, 0.5],
-                ],
-                columns=["looks", "power2"],
-                index=pd.Index(
-                    ["one", "two", "three", "four", "five"], dtype="object", name="choice"
-                ),
-            ),
-        }
-        self.assertEqual(scores.keys(), expected.keys())
-        for key in scores.keys():
-            assert_frame_equal(scores[key], expected[key], check_exact=False)
-
-    def test_get_metric_weights(self) -> None:
-        raw = Decision._get_raw(self.config, self.RAW, Decision._get_scorers(self.config))
-        metric_weights = Decision._get_metric_weights(self.config)
+    def test_get_measure_data(self) -> None:
+        """Tests fikl.decision._get_measure_data"""
+        source_data = fikl.decision._get_source_data(self.config, self.raw_path)
+        scorer_info = fikl.scorers.get_scorer_info_from_config(self.config)
+        measure_data = fikl.decision._get_measure_data(source_data, scorer_info)
         expected = pd.DataFrame(
             data=[
-                [1.0 / 3.0, 1.0 / 3.0, 0.0, 1.0 / 3.0, 0.0],
-                [0.0, 0.0, 0.5, 0.0, 0.5],
+                [1.0, 0.2, 0.0, 0.2, 0.1],
+                [0.75, 0.4, 0.25, 0.4, 0.2],
+                [0.5, 0.6, 0.5, 0.4, 0.3],
+                [0.25, 0.8, 0.75, 0.6, 0.4],
+                [0.0, 1.0, 1.0, 0.6, 0.5],
             ],
-            columns=["cost", "size", "looks", "economy", "power2"],
-            index=pd.Index(["smart", "fun"], dtype="object", name="metric"),
+            columns=["Cost", "Size", "Looks", "Economy", "Power"],
+            index=self.expected_choices,
         )
-        # sort the columns in expected alphabetically
-        expected = expected.sort_index(axis=1)
-        # sort the rows in expected alphabetically
-        expected = expected.sort_index(axis=0)
-        assert_frame_equal(metric_weights, expected)
+        assert_frame_equal(measure_data, expected)
+
+    def test_get_weights(self) -> None:
+        """Tests fikl.decision._get_weights"""
+        weights = fikl.decision._get_weights(self.config)
+        expected = pd.DataFrame(
+            data=[
+                [1.0 / 3.0, 1.0 / 3.0, 0.0, 1.0 / 3.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.67, 0.33, 0.0],
+            ],
+            columns=["Cost", "Size", "Looks", "Economy", "Power", "smart", "fun", "final"],
+            index=pd.Index(["smart", "fun", "final"], dtype="object", name="metric"),
+        )
+        assert_frame_equal(weights, expected)
 
     def test_get_metric_results(self) -> None:
-        raw = Decision._get_raw(self.config, self.RAW, Decision._get_scorers(self.config))
-        scores = Decision._get_scores(
-            raw,
-            Decision._get_scorers(self.config),
-        )
-        weights = Decision._get_metric_weights(self.config)
-        result = Decision._get_metric_results(scores, weights)
+        """Tests fikl.decision._get_metric_results"""
+        source_data = fikl.decision._get_source_data(self.config, self.raw_path)
+        scorer_info = fikl.scorers.get_scorer_info_from_config(self.config)
+        measure_data = fikl.decision._get_measure_data(source_data, scorer_info)
+        weights = fikl.decision._get_weights(self.config)
+        metric_eval_order = list(nx.topological_sort(fikl.graph.create_graph(self.config)))
+        metric_results = fikl.decision._get_metric_results(measure_data, weights, metric_eval_order)
         expected = pd.DataFrame(
             data=[
-                [0.4666666666666667, 0.05],
-                [0.5166666666666667, 0.225],
-                [0.5, 0.4],
-                [0.55, 0.575],
-                [0.5333333333333333, 0.75],
+                [0.4666666666666667, 0.05, 0.32916666666666666],
+                [0.5166666666666667, 0.225, 0.4204166666666667],
+                [0.5, 0.4, 0.467],
+                [0.55, 0.575, 0.55825],
+                [0.5333333333333333, 0.75, 0.6048333333333333],
             ],
-            columns=["smart", "fun"],
-            index=pd.Index(["one", "two", "three", "four", "five"], dtype="object", name="choice"),
+            columns=["smart", "fun", "final"],
+            index=self.expected_choices,
         )
-        assert_frame_equal(result, expected)
+        assert_frame_equal(metric_results, expected)
 
-    def test_get_final_weights(self) -> None:
-        scorers = Decision._get_scorers(self.config)
-        raw = Decision._get_raw(self.config, self.RAW, scorers)
-        scores = Decision._get_scores(raw, scorers)
-        weights = Decision._get_metric_weights(self.config)
-        results = Decision._get_metric_results(scores, weights)
-        final_weights = Decision._get_final_weights(self.config)
-        expected = pd.Series(
-            data=[0.67, 0.33],
-            index=pd.Index(["smart", "fun"], dtype="object", name="metric"),
+    def test_final(self) -> None:
+        """Tests fikl.decision.final"""
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        expected = pd.DataFrame(
+            data=[0.32916666666666666, 0.4204166666666667, 0.467, 0.55825, 0.6048333333333333],
+            index=self.expected_choices,
+            columns=["final"],
         )
-        # sort the rows in expected alphabetically
-        expected = expected.sort_index(axis=0)
-        assert_series_equal(final_weights, expected)
+        assert_frame_equal(decision.final_table(), expected)
+        assert_frame_equal(
+            decision.final_table(sort=True), expected.sort_values(by="final", ascending=False)
+        )
 
-    def test_ctor(self) -> None:
-        decision = Decision(config=self.config, raw_path=self.RAW)
-        expected_final_results = pd.Series(
-            data=[0.604833, 0.558250, 0.467000, 0.420417, 0.329167],
-            index=pd.Index(["five", "four", "three", "two", "one"], dtype="object", name="choice"),
-        )
-        assert_series_equal(decision.final_results, expected_final_results)
+    def test_answer(self) -> None:
+        """Tests fikl.decision.answer"""
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        expected = "five"
+        self.assertEqual(type(decision.answer()), str)
+        self.assertEqual(decision.answer(), expected)
 
-    def test_getters(self) -> None:
-        decision = Decision(config=self.config, raw_path=self.RAW)
-        self.assertEqual(decision.choices(), ["one", "two", "three", "four", "five"])
-        self.assertEqual(decision.metrics(), sorted(["smart", "fun"]))
-        self.assertEqual(
-            decision.all_factors(), sorted(["cost", "size", "looks", "economy", "power2"])
-        )
-        self.assertEqual(
-            decision.metric_factors(),
-            {"smart": sorted(["cost", "size", "economy"]), "fun": sorted(["looks", "power2"])},
-        )
-        self.assertEqual(decision.answer(), "five")
+    def test_scorer_info_source_order(self) -> None:
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        self.assertEqual([entry.source for entry in decision.scorer_info], decision.sources())
+
+    def test_scorer_info_measure_order(self) -> None:
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        self.assertEqual([entry.measure for entry in decision.scorer_info], decision.measures())
+
+    def test_metric_print_order(self) -> None:
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        self.assertEqual(decision.metric_print_order(), [2, 1, 0])
+
+    def test_get_metric_weight_tables(self) -> None:
+        """Tests fikl.Decision.metric_weight_tables"""
+        decision = fikl.decision.Decision(self.config, self.raw_path)
+        expected = [
+            pd.Series(
+                data=[1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0],
+                index=["Cost", "Size", "Economy"],
+                name="smart",
+            ),
+            pd.Series(
+                data=[0.5, 0.5],
+                index=["Looks", "Power"],
+                name="fun",
+            ),
+            pd.Series(
+                data=[0.67, 0.33],
+                index=["smart", "fun"],
+                name="final",
+            ),
+        ]
+        result = decision.metrics_weight_tables()
+        self.assertEqual(len(result), len(expected))
+        for i in range(len(result)):
+            assert_series_equal(result[i], expected[i])

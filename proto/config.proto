@@ -41,32 +41,35 @@ message Scoring {
     }
 }
 
-message Factor {
-    // name of the factor, which will be used to refer to it in metrics
+// this is a node on the lowest level of the DAG, whose value is computed directly from external
+// data according to some specified scoring algorithm.
+message Measure {
+    // name of the measure, which will be used to refer to it in metrics
     required string name = 1;
-    // source of the factor, which will be used to retrieve it from either the user-provided CSV,
-    // or from a fetcher.
+    // where the data used to determine the score comes from. will be used to retrieve it from 
+    // either the user-provided CSV or from a fetcher.
     required string source = 2;
     required Scoring scoring = 3;
     optional string doc = 4;
 }
 
-message NameWeight {
-    // refers to the `name` field of a Factor or Metric, as appropriate
+message Factor {
+    // refers to the `name` field of a Measure or Metric, as appropriate
     required string name = 1;
     // will be normalized later
     required float weight = 2;
 }
 
 message Metric {
-    // will be referred to by the `name` field of a NameWeight in `final`
     required string name = 1;
-    repeated NameWeight factors = 2;
+    // names can be measures or other metrics. must not be repeated or empty. cannot create a cyclic
+    // dependency.
+    repeated Factor factors = 2;
 }
 
 message Config {
-    repeated Factor factors = 1;
+    repeated Measure measures = 1;
     repeated Metric metrics = 2;
-    // list of metric names and weights to use for computing the final score
-    repeated NameWeight final = 3;
+    // name of an entry in `metrics` to use as the final score
+    required string final = 3;
 }

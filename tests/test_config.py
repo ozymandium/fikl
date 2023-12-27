@@ -24,27 +24,29 @@ class TestLoad(unittest.TestCase):
 
     def test_load(self) -> None:
         config = fikl.config.load_yaml(*self.CONFIG_PATHS)
-        self.assertEqual(len(config.factors), 5)
+        self.assertEqual(len(config.measures), 5)
+        self.assertEqual(len(config.metrics), 3)
+        self.assertEqual(config.final, "final")
 
         self.assertEqual(
-            [config.factors[i].name for i in range(len(config.factors))],
-            ["cost", "size", "looks", "economy", "power2"],
+            [config.measures[i].name for i in range(len(config.measures))],
+            ["Cost", "Size", "Looks", "Economy", "Power"],
         )
 
         self.assertEqual(
-            [config.factors[i].source for i in range(len(config.factors))],
+            [config.measures[i].source for i in range(len(config.measures))],
             ["cost", "size", "looks", "economy", "power"],
         )
 
-        self.assertEqual(config.factors[0].doc, "This is a comment\n")
-        self.assertEqual(config.factors[1].doc, "")
+        self.assertEqual(config.measures[0].doc, "This is a comment\n")
+        self.assertEqual(config.measures[1].doc, "")
 
         # scoring
         self.assertEqual(
-            config.factors[0].scoring.relative, config_pb2.RelativeScorerConfig(invert=True)
+            config.measures[0].scoring.relative, config_pb2.RelativeScorerConfig(invert=True)
         )
         self.assertEqual(
-            config.factors[1].scoring.interpolate,
+            config.measures[1].scoring.interpolate,
             config_pb2.InterpolateScorerConfig(
                 knots=[
                     config_pb2.InterpolateScorerConfig.Knot(**{"in": 0.0, "out": 0.0}),
@@ -54,11 +56,11 @@ class TestLoad(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            config.factors[2].scoring.star,
+            config.measures[2].scoring.star,
             config_pb2.StarScorerConfig(min=1, max=5),
         )
         self.assertEqual(
-            config.factors[3].scoring.bucket,
+            config.measures[3].scoring.bucket,
             config_pb2.BucketScorerConfig(
                 buckets=[
                     config_pb2.BucketScorerConfig.Bucket(min=0, max=2, val=0.2),
@@ -70,31 +72,34 @@ class TestLoad(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            config.factors[4].scoring.range,
+            config.measures[4].scoring.range,
             config_pb2.RangeScorerConfig(best=10, worst=0),
         )
 
         # metrics
-        self.assertEqual(len(config.metrics), 2)
+        self.assertEqual(len(config.metrics), 3)
         self.assertEqual(config.metrics[0].name, "smart")
         self.assertEqual(
             config.metrics[0].factors,
             [
-                config_pb2.NameWeight(name="cost", weight=1.0),
-                config_pb2.NameWeight(name="size", weight=1.0),
-                config_pb2.NameWeight(name="economy", weight=1.0),
+                config_pb2.Factor(name="Cost", weight=1.0),
+                config_pb2.Factor(name="Size", weight=1.0),
+                config_pb2.Factor(name="Economy", weight=1.0),
             ],
         )
         self.assertEqual(config.metrics[1].name, "fun")
         self.assertEqual(
             config.metrics[1].factors,
             [
-                config_pb2.NameWeight(name="looks", weight=1.0),
-                config_pb2.NameWeight(name="power2", weight=1.0),
+                config_pb2.Factor(name="Looks", weight=1.0),
+                config_pb2.Factor(name="Power", weight=1.0),
             ],
         )
-
-        # final
-        self.assertEqual(len(config.final), 2)
-        self.assertEqual(config.final[0], config_pb2.NameWeight(name="smart", weight=0.67))
-        self.assertEqual(config.final[1], config_pb2.NameWeight(name="fun", weight=0.33))
+        self.assertEqual(config.metrics[2].name, "final")
+        self.assertEqual(
+            config.metrics[2].factors,
+            [
+                config_pb2.Factor(name="smart", weight=0.67),
+                config_pb2.Factor(name="fun", weight=0.33),
+            ],
+        )

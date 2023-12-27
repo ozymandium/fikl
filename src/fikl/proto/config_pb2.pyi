@@ -90,7 +90,7 @@ class Scoring(_message.Message):
         range: _Optional[_Union[RangeScorerConfig, _Mapping]] = ...,
     ) -> None: ...
 
-class Factor(_message.Message):
+class Measure(_message.Message):
     __slots__ = ("name", "source", "scoring", "doc")
     NAME_FIELD_NUMBER: _ClassVar[int]
     SOURCE_FIELD_NUMBER: _ClassVar[int]
@@ -108,7 +108,7 @@ class Factor(_message.Message):
         doc: _Optional[str] = ...,
     ) -> None: ...
 
-class NameWeight(_message.Message):
+class Factor(_message.Message):
     __slots__ = ("name", "weight")
     NAME_FIELD_NUMBER: _ClassVar[int]
     WEIGHT_FIELD_NUMBER: _ClassVar[int]
@@ -121,24 +121,24 @@ class Metric(_message.Message):
     NAME_FIELD_NUMBER: _ClassVar[int]
     FACTORS_FIELD_NUMBER: _ClassVar[int]
     name: str
-    factors: _containers.RepeatedCompositeFieldContainer[NameWeight]
+    factors: _containers.RepeatedCompositeFieldContainer[Factor]
     def __init__(
         self,
         name: _Optional[str] = ...,
-        factors: _Optional[_Iterable[_Union[NameWeight, _Mapping]]] = ...,
+        factors: _Optional[_Iterable[_Union[Factor, _Mapping]]] = ...,
     ) -> None: ...
 
 class Config(_message.Message):
-    __slots__ = ("factors", "metrics", "final")
-    FACTORS_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("measures", "metrics", "final")
+    MEASURES_FIELD_NUMBER: _ClassVar[int]
     METRICS_FIELD_NUMBER: _ClassVar[int]
     FINAL_FIELD_NUMBER: _ClassVar[int]
-    factors: _containers.RepeatedCompositeFieldContainer[Factor]
+    measures: _containers.RepeatedCompositeFieldContainer[Measure]
     metrics: _containers.RepeatedCompositeFieldContainer[Metric]
-    final: _containers.RepeatedCompositeFieldContainer[NameWeight]
+    final: str
     def __init__(
         self,
-        factors: _Optional[_Iterable[_Union[Factor, _Mapping]]] = ...,
+        measures: _Optional[_Iterable[_Union[Measure, _Mapping]]] = ...,
         metrics: _Optional[_Iterable[_Union[Metric, _Mapping]]] = ...,
-        final: _Optional[_Iterable[_Union[NameWeight, _Mapping]]] = ...,
+        final: _Optional[str] = ...,
     ) -> None: ...

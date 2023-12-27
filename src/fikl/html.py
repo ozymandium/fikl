@@ -10,7 +10,7 @@ import bs4
 import re
 import uuid
 from collections import OrderedDict
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, List
 from inspect import cleandoc
 import tempfile
 
@@ -229,17 +229,38 @@ def _table_to_html(
     return styler.to_html()
 
 
-def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: str) -> str:
+def _reorder_list(l: List, idxs: List[int]) -> List:
     """
-    use matplotlib to generate a chart for a row in decision.metric_weights to show the
-    relative weights of each factor for a given metric. remove all columns that have a weight of
-    0. save the chart as a png in the assets_dir. return the relative path to the png file within
+    reorder a list based on a list of indices. the indices are into the original list.
+
+    Parameters
+    ----------
+    l : List
+        list to reorder
+    idxs : List[int]
+        list of indices into the original list
+
+    Returns
+    -------
+    List
+        reordered list
+    """
+    return [l[i] for i in idxs]
+
+
+def _metrics_weight_table_to_png(name: str, weights: pd.Series, assets_dir: str) -> str:
+    """
+    use matplotlib to generate a bar chart for factor weights for each entry in
+    Decision.metrics_weights_tables.
+    save the chart as a png in the assets_dir. return the relative path to the png file within
     the assets_dir.
 
     Parameters
     ----------
     metric : str
-        the metric to generate the pie chart for
+        name of the metric
+    weights : pd.Series
+        weights for a single metric. index is the factor names. values are the weights (0-1).
     assets_dir : str
         folder to stick html assets
 
@@ -248,19 +269,14 @@ def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: st
     str
         relative path to the png file
     """
-    # get the weights for the given metric
-    weights = decision.metric_weights.loc[metric]
-    # remove all columns that have a weight of 0
-    weights = weights[weights != 0.0]
-    # get the labels for the pie chart
+    # get the labels for the bar chart
     labels = weights.index
-    # get the values for the pie chart as percentages
+    # get the values for the bar chart as percentages
     values = 100 * weights.values
-    # # get the colors for the pie chart
-    # colors = sns.color_palette("deep", len(labels))
 
     # generate the horizontal chart
     fig, ax = plt.subplots()
+    ax.set_title(f"Factor Weighting for Metric: {name}")
     ax.barh(labels, values)
     # disable x axis
     ax.xaxis.set_visible(False)
@@ -277,7 +293,7 @@ def _metrics_weight_chart_to_png(decision: Decision, metric: str, assets_dir: st
     fig.tight_layout()
 
     # save to png
-    png_abs_path = os.path.join(assets_dir, f"{metric}.png")
+    png_abs_path = os.path.join(assets_dir, f"{name}.png")
     fig.savefig(png_abs_path)
 
     # convert to html
@@ -311,68 +327,56 @@ def report(decision: Decision, path: Optional[str] = None) -> Optional[str]:
         assets_dir = os.path.join(os.path.dirname(path), f"{os.path.basename(path)}_assets")
         os.makedirs(assets_dir, exist_ok=True)
 
-    raw_table = _table_to_html(decision.raw)
+    # sort the final table by the final score
+    final_table = _table_to_html(decision.final_table(sort=True), color_score=True, percent=True)
 
-    # scores dataframes include columns for factors that are ignored, so remove those
-    scores_tables = {}
-    for metric in decision.metrics():
-        df = decision.scores[metric].copy()
-        # a factor is ignored for this metric if it does not appear in the metric weights table
-        # as a column for this metric
-        ignored_factors = [
-            factor for factor in decision.all_factors() if factor not in decision.metric_weights
-        ]
-        df = df.drop(columns=ignored_factors)
-        scores_tables[metric] = _table_to_html(df, color_score=True, percent=True)
+    # get the order of the metrics to print. this is a list of int indices into Decision.metrics()
+    # to use to rearrange metrics lists
+    metric_order = decision.metric_print_order()
 
-    results_table = _table_to_html(decision.metric_results, color_score=True, percent=True)
-    weights_table = _table_to_html(decision.metric_weights, color_score=True, percent=True)
-    weight_charts = {
-        metric: _metrics_weight_chart_to_png(decision, metric, assets_dir)
-        for metric in decision.metrics()
-    }
-    factor_descriptions = {
-        metric: {
-            factor: html_from_doc(decision.factor_docs[metric][factor])
-            for factor in decision.factor_docs[metric]
-        }
-        for metric in decision.factor_docs
-    }
-    factor_scorings = {
-        metric: {
-            factor: html_from_doc(decision.scorer_docs[metric][factor])
-            for factor in decision.scorer_docs[metric]
-        }
-        for metric in decision.scorer_docs
-    }
-    final_results_table = _table_to_html(decision.final_results, color_score=True, percent=True)
-    final_weights_table = _table_to_html(decision.final_weights, color_score=True, percent=True)
-
-    # a factor is ignored if all values in its column in the metric weights table are 0
-    ignored_factors = [
-        factor for factor in decision.all_factors() if all(decision.metric_weights[factor] == 0.0)
+    # list of metric names
+    metrics = _reorder_list(decision.metrics(), metric_order)
+    # list of metric tables
+    metrics_tables = [
+        _table_to_html(table, color_score=True, percent=True) for table in decision.metrics_tables()
     ]
-    # a metric is ignored if it does not appear in the final weights table
-    ignored_metrics = [
-        metric for metric in decision.metrics() if metric not in decision.final_weights
+    metrics_tables = _reorder_list(metrics_tables, metric_order)
+    # list of weight tables for each metric
+    metrics_weight_tables = [
+        _metrics_weight_table_to_png(metric, weights, assets_dir)
+        for metric, weights in zip(decision.metrics(), decision.metrics_weight_tables())
     ]
+    metrics_weight_tables = _reorder_list(metrics_weight_tables, metric_order)
+
+    measures_table = _table_to_html(decision.measures_table(), color_score=True, percent=True)
+
+    # FIXME: remove duplicate columns from sources table in Decision, instead of hacking it here
+    sources_table = decision.sources_table()
+    # remove duplicate columns
+    sources_table = sources_table.loc[:, ~sources_table.columns.duplicated()]
+    sources_table = _table_to_html(sources_table, color_score=False, percent=False)
+
+    sources_per_measure = [measure.source for measure in decision.config.measures]
+
+    # get the docs
+    measure_docs = [html_from_doc(measure.doc) for measure in decision.config.measures]
+    scorer_docs = [html_from_doc(doc) for doc in decision.scorer_docs()]
 
     # dump the html blobs into a template
     html = fill_template(
         "index",
-        raw_table=raw_table,
-        scores_tables=scores_tables,
-        results_table=results_table,
-        weights_table=weights_table,
-        weight_charts=weight_charts,
-        factor_descriptions=factor_descriptions,
-        factor_scorings=factor_scorings,
-        metric_factors=decision.metric_factors(),
-        ignored_factors=ignored_factors,
-        ignored_metrics=ignored_metrics,
         answer=decision.answer(),
-        final_results_table=final_results_table,
-        final_weights_table=final_weights_table,
+        final_table=final_table,
+        metrics=metrics,
+        metrics_tables=metrics_tables,
+        metrics_weight_tables=metrics_weight_tables,
+        ignored_metrics=decision.ignored_metrics(),
+        measures_table=measures_table,
+        sources_table=sources_table,
+        measures=decision.measures(),
+        sources_per_measure=sources_per_measure,
+        measure_docs=measure_docs,
+        scorer_docs=scorer_docs,
     )
     html = add_toc(html)
     html = bs4.BeautifulSoup(html, "html.parser").prettify()

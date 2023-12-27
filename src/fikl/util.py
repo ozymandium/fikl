@@ -48,7 +48,10 @@ def fill_template(template_name, **kwargs):
     logger.debug("Generating HTML from template: %s", template_name)
     template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "templates"))
     logger.debug("Template directory: %s", template_dir)
+
+    # setup jinja
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
+
     # display the list of templates that jinja sees
     logger.debug(f"Available templates: {env.list_templates()}")
     template = env.get_template(f"{template_name}.html.j2")
