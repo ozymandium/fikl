@@ -9,6 +9,8 @@ class ExampleFetcher:
     This is an example fetch class.
     """
 
+    DTYPE = float
+
     def __init__(self):
         """
         The fetcher is initialized without any arguments, as fikl does not make any assumptions
@@ -79,16 +81,17 @@ def fetch(sources: list[str], choices: list[str]) -> pd.DataFrame:
     """
     # get the fetchers
     fetchers = [_get_fetcher(source) for source in sources]
+    dtypes = [fetcher.DTYPE for fetcher in fetchers]
     # fetch the data
     data = [fetcher(choices) for fetcher in fetchers]
-    # ensure the data types are all floats
+    # ensure the data types are all the advertised types
     for i, d in enumerate(data):
         if not isinstance(d, list):
             raise TypeError(f"Fetcher {sources[i]} returned a {type(d)}, not a list")
         for j, v in enumerate(d):
-            if not isinstance(v, float):
+            if not isinstance(v, dtypes[i]):
                 raise TypeError(
-                    f"Fetcher {sources[i]} returned a {type(v)} at index {j}, not a float"
+                    f"Fetcher {sources[i]} returned a {type(v)} at index {j}, not a {dtypes[i]}"
                 )
     # create a dataframe
     df = pd.DataFrame(data).T
@@ -96,4 +99,6 @@ def fetch(sources: list[str], choices: list[str]) -> pd.DataFrame:
     df.columns = sources
     # set the index
     df.index = choices
+    # convert the dtypes
+    df = df.astype(dict(zip(sources, dtypes)))
     return df

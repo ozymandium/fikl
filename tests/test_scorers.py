@@ -5,7 +5,7 @@ import unittest
 import pandas as pd
 import numpy as np
 
-from fikl.scorers import Star, Bucket, Relative, Interpolate, Range, get_scorer_info
+from fikl.scorers import Star, Bucket, Relative, Interpolate, Range, Bool, get_scorer_info
 from fikl.proto import config_pb2
 
 
@@ -225,7 +225,7 @@ class TestRelative(unittest.TestCase):
 
 class TestInterpolate(unittest.TestCase):
     """
-    Unit tests for fikl.scores.Interpolate
+    Unit tests for fikl.scorers.Interpolate
     """
 
     def setUp(self) -> None:
@@ -301,7 +301,7 @@ class TestInterpolate(unittest.TestCase):
 
 class TestRange(unittest.TestCase):
     """
-    Unit tests for fikl.scores.Range
+    Unit tests for fikl.scorers.Range
     """
 
     def test_expected(self) -> None:
@@ -323,6 +323,32 @@ class TestRange(unittest.TestCase):
         """
         self.assertEqual(Range(worst=0.0, best=100.0), Range(worst=0.0, best=100.0))
         self.assertNotEqual(Range(worst=0.0, best=100.0), Range(worst=100.0, best=0.0))
+
+
+class TestBool(unittest.TestCase):
+    """
+    Unit tests for fikl.scorers.Bool
+    """
+
+    def test_expected(self) -> None:
+        """
+        Test that the score method returns the correct value.
+        """
+        self.assertEqual(
+            Bool(good=True)(pd.Series([True, False, True, False])).tolist(), [1.0, 0.0, 1.0, 0.0]
+        )
+        self.assertEqual(
+            Bool(good=False)(pd.Series([True, False, True, False])).tolist(), [0.0, 1.0, 0.0, 1.0]
+        )
+
+    def test_eq(self) -> None:
+        """
+        Test that the __eq__ method works as expected
+        """
+        self.assertEqual(Bool(good=True), Bool(good=True))
+        self.assertEqual(Bool(good=False), Bool(good=False))
+        self.assertNotEqual(Bool(good=True), Bool(good=False))
+        self.assertNotEqual(Bool(good=False), Bool(good=True))
 
 
 class TestGetScorerInfo(unittest.TestCase):

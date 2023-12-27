@@ -31,6 +31,10 @@ message RangeScorerConfig {
     required float worst = 2;
 }
 
+message BoolScorerConfig {
+    required bool good = 1;
+}
+
 message Scoring {
     oneof config {
         StarScorerConfig star = 1;
@@ -38,6 +42,7 @@ message Scoring {
         RelativeScorerConfig relative = 3;
         InterpolateScorerConfig interpolate = 4;
         RangeScorerConfig range = 5;
+        BoolScorerConfig bool = 6;
     }
 }
 

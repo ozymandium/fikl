@@ -1,0 +1,13 @@
+measures:
+-   name: Val 1
+    source: val1
+    scoring: {bool: {good: true}}
+-   name: Val 2
+    source: val2
+    scoring: {bool: {good: false}}
+metrics:
+-   name: Overall
+    factors:
+    -   {name: Val 1, weight: 1}
+    -   {name: Val 2, weight: 1}
+final: Overall

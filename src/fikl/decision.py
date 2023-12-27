@@ -45,7 +45,7 @@ def _get_source_data(config: config_pb2.Config, raw_path: str) -> pd.DataFrame:
     # set of all requested sources from the config
     req_sources = set([measure.source for measure in config.measures])
     # any source that is not a column in the raw data already will need to be fetched
-    missing_sources = req_sources.difference(set(raw.columns))
+    missing_sources = list(req_sources.difference(set(raw.columns)))
     logger.debug("requested sources: {}".format(pprint.pformat(req_sources)))
     logger.debug("available CSV columns: {}".format(pprint.pformat(raw.columns)))
     logger.debug("missing sources:\n{}".format(pprint.pformat(missing_sources)))
