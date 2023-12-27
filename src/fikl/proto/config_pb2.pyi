@@ -1,13 +1,7 @@
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import (
-    ClassVar as _ClassVar,
-    Iterable as _Iterable,
-    Mapping as _Mapping,
-    Optional as _Optional,
-    Union as _Union,
-)
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -29,17 +23,10 @@ class BucketScorerConfig(_message.Message):
         min: float
         max: float
         val: float
-        def __init__(
-            self,
-            min: _Optional[float] = ...,
-            max: _Optional[float] = ...,
-            val: _Optional[float] = ...,
-        ) -> None: ...
+        def __init__(self, min: _Optional[float] = ..., max: _Optional[float] = ..., val: _Optional[float] = ...) -> None: ...
     BUCKETS_FIELD_NUMBER: _ClassVar[int]
     buckets: _containers.RepeatedCompositeFieldContainer[BucketScorerConfig.Bucket]
-    def __init__(
-        self, buckets: _Optional[_Iterable[_Union[BucketScorerConfig.Bucket, _Mapping]]] = ...
-    ) -> None: ...
+    def __init__(self, buckets: _Optional[_Iterable[_Union[BucketScorerConfig.Bucket, _Mapping]]] = ...) -> None: ...
 
 class RelativeScorerConfig(_message.Message):
     __slots__ = ("invert",)
@@ -57,9 +44,7 @@ class InterpolateScorerConfig(_message.Message):
         def __init__(self, out: _Optional[float] = ..., **kwargs) -> None: ...
     KNOTS_FIELD_NUMBER: _ClassVar[int]
     knots: _containers.RepeatedCompositeFieldContainer[InterpolateScorerConfig.Knot]
-    def __init__(
-        self, knots: _Optional[_Iterable[_Union[InterpolateScorerConfig.Knot, _Mapping]]] = ...
-    ) -> None: ...
+    def __init__(self, knots: _Optional[_Iterable[_Union[InterpolateScorerConfig.Knot, _Mapping]]] = ...) -> None: ...
 
 class RangeScorerConfig(_message.Message):
     __slots__ = ("best", "worst")
@@ -89,15 +74,7 @@ class Scoring(_message.Message):
     interpolate: InterpolateScorerConfig
     range: RangeScorerConfig
     bool: BoolScorerConfig
-    def __init__(
-        self,
-        star: _Optional[_Union[StarScorerConfig, _Mapping]] = ...,
-        bucket: _Optional[_Union[BucketScorerConfig, _Mapping]] = ...,
-        relative: _Optional[_Union[RelativeScorerConfig, _Mapping]] = ...,
-        interpolate: _Optional[_Union[InterpolateScorerConfig, _Mapping]] = ...,
-        range: _Optional[_Union[RangeScorerConfig, _Mapping]] = ...,
-        bool: _Optional[_Union[BoolScorerConfig, _Mapping]] = ...,
-    ) -> None: ...
+    def __init__(self, star: _Optional[_Union[StarScorerConfig, _Mapping]] = ..., bucket: _Optional[_Union[BucketScorerConfig, _Mapping]] = ..., relative: _Optional[_Union[RelativeScorerConfig, _Mapping]] = ..., interpolate: _Optional[_Union[InterpolateScorerConfig, _Mapping]] = ..., range: _Optional[_Union[RangeScorerConfig, _Mapping]] = ..., bool: _Optional[_Union[BoolScorerConfig, _Mapping]] = ...) -> None: ...
 
 class Measure(_message.Message):
     __slots__ = ("name", "source", "scoring", "doc")
@@ -109,13 +86,7 @@ class Measure(_message.Message):
     source: str
     scoring: Scoring
     doc: str
-    def __init__(
-        self,
-        name: _Optional[str] = ...,
-        source: _Optional[str] = ...,
-        scoring: _Optional[_Union[Scoring, _Mapping]] = ...,
-        doc: _Optional[str] = ...,
-    ) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., source: _Optional[str] = ..., scoring: _Optional[_Union[Scoring, _Mapping]] = ..., doc: _Optional[str] = ...) -> None: ...
 
 class Factor(_message.Message):
     __slots__ = ("name", "weight")
@@ -131,11 +102,7 @@ class Metric(_message.Message):
     FACTORS_FIELD_NUMBER: _ClassVar[int]
     name: str
     factors: _containers.RepeatedCompositeFieldContainer[Factor]
-    def __init__(
-        self,
-        name: _Optional[str] = ...,
-        factors: _Optional[_Iterable[_Union[Factor, _Mapping]]] = ...,
-    ) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., factors: _Optional[_Iterable[_Union[Factor, _Mapping]]] = ...) -> None: ...
 
 class Config(_message.Message):
     __slots__ = ("measures", "metrics", "final")
@@ -145,9 +112,4 @@ class Config(_message.Message):
     measures: _containers.RepeatedCompositeFieldContainer[Measure]
     metrics: _containers.RepeatedCompositeFieldContainer[Metric]
     final: str
-    def __init__(
-        self,
-        measures: _Optional[_Iterable[_Union[Measure, _Mapping]]] = ...,
-        metrics: _Optional[_Iterable[_Union[Metric, _Mapping]]] = ...,
-        final: _Optional[str] = ...,
-    ) -> None: ...
+    def __init__(self, measures: _Optional[_Iterable[_Union[Measure, _Mapping]]] = ..., metrics: _Optional[_Iterable[_Union[Metric, _Mapping]]] = ..., final: _Optional[str] = ...) -> None: ...
