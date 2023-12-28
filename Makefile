@@ -1,17 +1,22 @@
 
+SRCS := $(shell find src -name '*.py')
 VENV_NAME := .venv
 PYTHON := $(VENV_NAME)/bin/python3
 PIP := $(PYTHON) -m pip
+FIKL := $(VEN_NAME)/bin/fikl
 PROTO_DEF_DIR := proto
 PROTO_OUT_DIR := src/fikl/proto
 PROTO_PY := $(PROTO_OUT_DIR)/config_pb2.py
 PROTO_PYI := $(PROTO_OUT_DIR)/config_pb2.pyi
 
-.PHONY: all install proto lint test coverage mypy pyright
+# .PHONY: all install src lint test mypy pyright
 
+.PHONY: all
 all: install lint test coverage mypy pyright
 
-install: $(VENV_NAME)
+# SRCS includes proto generated files
+.PHONY: src
+src: $(SRCS)
 
 # TODO: ensure protobuf is installed
 $(PROTO_PY) $(PROTO_PYI): proto/config.proto
@@ -21,32 +26,43 @@ $(PROTO_PY) $(PROTO_PYI): proto/config.proto
 		--pyi_out="$(PROTO_OUT_DIR)" \
 		"$(PROTO_DEF_DIR)"/config.proto
 
-proto: $(PROTO_PY) $(PROTO_PYI)
-
-$(VENV_NAME): pyproject.toml proto
+$(FIKL): pyproject.toml proto src
 	python3 -m venv $(VENV_NAME)
 	$(PIP) install --upgrade pip
 	$(PIP) install "setuptools>=62.0.0"
 	$(PIP) install -e .
 
+.PHONY: install
+install: $(VENV_NAME)
+
+.PHONY: lint
 lint: $(VENV_NAME)
 	$(PYTHON) -m black --verbose src tests scripts --exclude $(PROTO_OUT_DIR)
 
+.PHONY: test
 test: $(VENV_NAME)
 	$(PYTHON) -m pytest
 
-coverage: $(VENV_NAME)
-	$(PYTHON) -m coverage run --source=$REPO_DIR/src -m pytest 
-	$(PYTHON) -m coverage html
+COVERAGE_SQLITE := coverage.sqlite
+$(COVERAGE_SQLITE): $(VENV_NAME)
+	$(PYTHON) -m coverage run --source=src --data-file=$(COVERAGE_SQLITE) -m pytest 
 
-mypy: $(VENV_NAME)
-	$(PYTHON) -m pytest --mypy
+COVERAGE_HTML := coverage_html
+$(COVERAGE_HTML): $(COVERAGE_SQLITE)
+	$(PYTHON) -m coverage html --data-file=$(COVERAGE_SQLITE) -d $(COVERAGE_HTML)
 
-pyright: $(VENV_NAME)
-	$(PYTHON) -m pyright
+.PHONY: coverage
+coverage: $(COVERAGE_HTML)
 
-ipy: $(VENV_NAME)
-	$(PYTHON) -m IPython
+# mypy: $(VENV_NAME)
+# 	$(PYTHON) -m pytest --mypy
 
+# pyright: $(VENV_NAME)
+# 	$(PYTHON) -m pyright
+
+# ipy: $(VENV_NAME)
+# 	$(PYTHON) -m IPython
+
+.PHONY: clean
 clean:
 	git clean -ffdX

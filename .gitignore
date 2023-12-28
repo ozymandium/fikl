@@ -3,5 +3,5 @@ dist
 *.egg-info
 **/__pycache__
 .DS_Store
-.coverage
+coverage.sqlite
 .venv
