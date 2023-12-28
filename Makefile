@@ -13,7 +13,6 @@ COVERAGE_HTML := .coverage_html
 
 # SRCS includes proto generated files, so there's no need for a separate rule for them
 $(FIKL): pyproject.toml $(SRCS)
-	@echo "Building fikl: $(FIKL)"
 	python3 -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install "setuptools>=62.0.0"
