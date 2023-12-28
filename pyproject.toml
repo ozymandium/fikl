@@ -27,6 +27,7 @@ dependencies = [
     "ipdb == 0.13.13",
     "pyright == 1.1.334",
     "pytest-mypy == 0.10.3",
+    "black == 23.12.1",
     # stubs
     "pandas-stubs == 2.1.1.230928",
     "types-PyYAML == 6.0.12.12",
@@ -45,7 +46,6 @@ build-backend = "hatchling.build"
 [tool.black]
 line-length = 100
 target-version = ['py39']
-include = '\.pyi?$'
 
 [tool.pytest.ini_options]
 pythonpath = [

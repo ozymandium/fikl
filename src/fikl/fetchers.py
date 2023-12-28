@@ -9,6 +9,8 @@ class ExampleFetcher:
     This is an example fetch class.
     """
 
+    DTYPE = float
+
     def __init__(self):
         """
         The fetcher is initialized without any arguments, as fikl does not make any assumptions
