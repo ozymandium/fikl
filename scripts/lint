@@ -1,8 +1,0 @@
-#!/bin/zsh
-
-set -e 
-set -o pipefail
-
-REPO_DIR=$(realpath ${0:a:h}/..)
-
-black "$REPO_DIR"

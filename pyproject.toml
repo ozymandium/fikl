@@ -12,14 +12,13 @@ dependencies = [
     "PyYAML == 6.0.1",
     "seaborn == 0.13.0",
     "pandas == 2.1.2",
-    "jinja2", # not sure why this is needed
+    "jinja2", 
     "markdown == 3.5.1",
     "beautifulsoup4 == 4.12.2",
     "openpyxl == 3.1.2", # secondary dependency for something, can't remember what
     "protobuf == 4.25.1",
     "networkx == 3.2.1",
     "pygraphviz == 1.11",
-    
     # development
     "pytest == 7.4.3",
     "coverage == 7.3.2",
@@ -28,6 +27,7 @@ dependencies = [
     "ipdb == 0.13.13",
     "pyright == 1.1.334",
     "pytest-mypy == 0.10.3",
+    "black == 23.12.1",
     # stubs
     "pandas-stubs == 2.1.1.230928",
     "types-PyYAML == 6.0.12.12",
@@ -46,7 +46,6 @@ build-backend = "hatchling.build"
 [tool.black]
 line-length = 100
 target-version = ['py39']
-include = '\.pyi?$'
 
 [tool.pytest.ini_options]
 pythonpath = [

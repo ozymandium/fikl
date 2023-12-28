@@ -19,7 +19,6 @@ class TestCreateGraph(unittest.TestCase):
         self.graph = fikl.graph.create_graph(fikl.config.load_yaml(*self.CONFIG_PATHS))
 
     def test_create_graph(self) -> None:
-
         self.assertEqual(
             set(self.graph.nodes),
             {
